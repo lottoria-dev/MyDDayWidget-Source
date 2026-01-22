@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyDDayWidget - 심플한 바탕화면 디데이 시계</title>
+    <!-- 폰트 로드 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 파비콘 설정 (예시) -->
+    <link rel="shortcut icon" href="images/icon.ico">
+</head>
+<body style="background-color: #f5f5f5; padding: 20px;">
+
+<!-- 
+  [소프트웨어 소개: MyDDayWidget]
+  테마: Dark Gray & Soft Red (D-Day 위젯 테마 계승)
+-->
+<div class="edu-content-wrapper" id="edu-sw-intro-dday">
+    <style>
+        /* [스타일 캡슐화] */
+        #edu-sw-intro-dday.edu-content-wrapper {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background-color: #fff;
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        /* 타이틀 박스 - 위젯 느낌의 Dark 테마 적용 */
+        #edu-sw-intro-dday .title-box {
+            background: linear-gradient(135deg, #2b2b2b, #4a4a4a); /* Dark Gradient */
+            border-radius: 15px;
+            padding: 40px 20px;
+            margin-bottom: 40px;
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        #edu-sw-intro-dday .title-box h1 {
+            margin: 0;
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 1px 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+        #edu-sw-intro-dday .title-box p {
+            margin-top: 10px;
+            font-size: 1.15rem;
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        
+        /* 다운로드 버튼 스타일 (위젯 포인트 컬러 #ff6b6b 적용) */
+        #edu-sw-intro-dday .download-btn {
+            display: inline-block;
+            background-color: #ff6b6b; /* Soft Red */
+            color: white;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+        #edu-sw-intro-dday .download-btn:hover {
+            background-color: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(255, 82, 82, 0.3);
+        }
+
+        /* 섹션 헤더 */
+        #edu-sw-intro-dday h2 {
+            font-size: 1.8rem;
+            color: #2b2b2b; /* Dark Gray */
+            border-left: 6px solid #ff6b6b; /* Soft Red */
+            padding-left: 20px;
+            margin-top: 50px;
+            margin-bottom: 25px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        #edu-sw-intro-dday h3 {
+            font-size: 1.4rem;
+            color: #455a64; /* Blue Gray 700 */
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eceff1;
+            padding-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* 기본 컨텐츠 박스 */
+        #edu-sw-intro-dday .edu-box {
+            background-color: #fafafa;
+            border: 1px solid #eeeeee;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        /* 중요 포인트 */
+        #edu-sw-intro-dday .edu-important {
+            background-color: #ffebee; /* Red 50 */
+            border-left: 5px solid #ff6b6b; /* Soft Red */
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        #edu-sw-intro-dday .edu-important h4 {
+            color: #c62828;
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* 주의사항 */
+        #edu-sw-intro-dday .edu-mistake {
+            background-color: #fff3e0; /* Orange 50 */
+            border-left: 5px solid #ff9800; /* Orange 500 */
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        #edu-sw-intro-dday .edu-mistake h4 {
+            color: #e65100;
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+        #edu-sw-intro-dday .edu-mistake h4::before {
+            content: '⚠️';
+            margin-right: 10px;
+        }
+
+        /* 사용 예시 */
+        #edu-sw-intro-dday .edu-example {
+            background-color: #e0f7fa; /* Cyan 50 (민트 느낌) */
+            border: 1px solid #b2ebf2;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        #edu-sw-intro-dday .edu-example h4 {
+            color: #00838f; /* Cyan 800 */
+            margin: 0 0 10px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+        }
+        #edu-sw-intro-dday .edu-example h4::before {
+            content: '💡';
+            margin-right: 10px;
+        }
+
+        /* 기능 카드 그리드 */
+        #edu-sw-intro-dday .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        #edu-sw-intro-dday .feature-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        #edu-sw-intro-dday .feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border-color: #ff6b6b;
+        }
+        #edu-sw-intro-dday .feature-icon {
+            font-size: 2.5rem;
+            color: #ff6b6b; /* Soft Red */
+            margin-bottom: 15px;
+        }
+        #edu-sw-intro-dday .feature-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2b2b2b;
+        }
+
+        /* 라이선스 박스 */
+        #edu-sw-intro-dday .license-box {
+            border: 2px dashed #b0bec5; /* Blue Gray 200 */
+            background-color: #eceff1; /* Blue Gray 50 */
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        #edu-sw-intro-dday .license-title {
+            color: #455a64; /* Blue Gray 700 */
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+
+    <!-- 1. 타이틀 박스 -->
+    <div class="title-box">
+        <!-- 아이콘은 별도 생성한 icon.png를 사용한다고 가정 -->
+        <img src="images/ddwicon.png" alt="D-Day Widget Logo" style="width: 80px; margin-bottom: 15px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); border-radius: 15px;">
+        <h1>MyDDayWidget</h1>
+        <p>배경 없이 깔끔하게, 바탕화면에 녹아드는 투명 D-Day 시계</p>
+        <a href="store/MyDDayWidget.exe" download class="download-btn">
+            <i class="fa-brands fa-windows"></i> 무료 다운로드 (v1.0)
+        </a>
+        <p style="font-size: 0.9rem; margin-top: 15px; opacity: 0.7;">* 설치 불필요 (단일 실행 파일)</p>
+    </div>
+
+    <!-- 2. 프로그램 소개 -->
+    <section>
+        <h2>1. 프로그램 소개</h2>
+        <div class="edu-box">
+            <h3>왜 만들었나요?</h3>
+            <p>
+                바탕화면에 D-Day를 띄우고 싶지만, 투박한 네모 박스가 배경화면을 가리는 것이 싫으셨나요? 
+                <strong>MyDDayWidget</strong>은 배경을 완벽하게 투명 처리하여, 마치 바탕화면에 글씨만 인쇄된 듯한 깔끔함을 제공합니다.
+            </p>
+            <div class="edu-important">
+                <h4>🎯 개발 목표</h4>
+                <p>
+                    "복잡한 기능은 빼고, <strong>심플함과 가독성</strong>에 집중하자.<br>
+                    <strong>시계와 D-Day</strong>를 한 번에 관리하여 바탕화면을 넓게 쓰자."
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. 핵심 기능 -->
+    <section>
+        <h2>2. 핵심 기능</h2>
+        <div class="feature-grid">
+            <!-- 기능 1 -->
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-ghost"></i></div>
+                <div class="feature-title">완벽한 투명 배경</div>
+                <p>네모난 창 테두리 없이 글자만 둥둥 떠 있습니다. 어떤 배경화면과도 완벽하게 어울립니다.</p>
+            </div>
+            <!-- 기능 2 -->
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-regular fa-clock"></i></div>
+                <div class="feature-title">시계 & D-Day 통합</div>
+                <p>상단에는 현재 시간과 날짜를, 하단에는 중요한 일정(D-Day)을 무제한으로 추가해 관리하세요.</p>
+            </div>
+            <!-- 기능 3 -->
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fa-solid fa-palette"></i></div>
+                <div class="feature-title">자유로운 커스터마이징</div>
+                <p>글자 크기, 색상, 투명도를 내 마음대로 조절하고, 마우스로 크기를 자유롭게 늘리세요.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. 사용 방법 -->
+    <section>
+        <h2>3. 사용 방법</h2>
+        
+        <div class="edu-box">
+            <h3>단계별 가이드</h3>
+            
+            <div class="edu-example">
+                <h4>STEP 1: 실행 및 이동</h4>
+                <p>파일을 실행하면 바탕화면에 위젯이 나타납니다. <strong>글자 부분을 클릭하고 드래그</strong>하여 원하는 위치로 옮기세요. (빈 공간은 클릭되지 않습니다!)</p>
+            </div>
+
+            <div class="edu-example">
+                <h4>STEP 2: 크기 조절</h4>
+                <p>위젯의 <strong>우측 하단 끝부분(◢)</strong>을 잡고 드래그하면 전체 크기가 조절됩니다. 폰트 크기는 설정창에서 상세 조절 가능합니다.</p>
+            </div>
+
+            <div class="edu-example">
+                <h4>STEP 3: 설정 및 일정 추가</h4>
+                <p>위젯을 <strong>더블 클릭</strong>하거나 우클릭 메뉴를 통해 설정창을 여세요. <br>
+                <strong>[+ D-Day 추가]</strong> 버튼으로 일정을 무제한 추가하고, 글자 색상을 배경에 맞춰 변경할 수 있습니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. 설치 및 주의사항 -->
+    <section>
+        <h2>4. 설치 시 주의사항</h2>
+        
+        <div class="edu-mistake">
+            <h4>Windows 보호(SmartScreen) 알림 해결법</h4>
+            <p>개인 개발자가 만든 무료 프로그램이라 마이크로소프트 인증서가 없어 경고창이 뜰 수 있습니다.</p>
+            <div style="background: rgba(255,255,255,0.6); padding: 15px; border-radius: 5px; margin-top: 10px;">
+                <strong>💡 해결 방법:</strong>
+                <ol style="margin: 10px 0 0 20px;">
+                    <li>파란색 보호 경고창에서 <strong><u>'추가 정보'</u></strong> 문구를 클릭합니다.</li>
+                    <li>하단에 나타나는 <strong><u>'실행'</u></strong> 버튼을 클릭합니다.</li>
+                </ol>
+                <p style="font-size: 0.9rem; margin-top: 5px; color: #666;">* 악성코드가 아니니 안심하고 사용하셔도 됩니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. 라이선스 -->
+    <div class="license-box">
+        <span class="license-title"><i class="fa-solid fa-gavel"></i> 라이선스 및 배포 정책</span>
+        <p>본 프로그램은 <strong>개인 및 교육 현장에서 무료로 사용</strong>할 수 있습니다.</p>
+        <p style="font-size: 0.95rem; margin-top: 10px; color: #d32f2f;">
+            <strong>[금지 사항]</strong><br>
+            1. 프로그램의 무단 재배포 및 수정 금지<br>
+            2. 상업적 이용 및 판매 금지<br>
+        </p>
+        <p style="font-size: 0.9rem; margin-top: 20px; color: #666;">
+            &copy; 2026 Developer trsketch (trsketch@gmail.com)
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>
