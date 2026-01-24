@@ -34,8 +34,6 @@ DEFAULT_DATA = [{"title": "D-Day", "date": datetime.now().strftime("%Y-%m-%d")}]
 # 아이콘 경로를 resource_path 함수로 감싸서 내부 파일도 찾게 함
 ICON_FILE = resource_path('icon.png') 
 
-# [수정] 강제 다크 모드 스타일시트 삭제 (시스템 기본 테마 사용)
-
 class DDayWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -294,9 +292,12 @@ class DDayWidget(QWidget):
         # 스타일 적용 (설정된 폰트 크기 반영)
         self.line.setStyleSheet(f"color: {font_color}; background-color: {font_color};")
         
+        # 시간 스타일
         self.lbl_time.setStyleSheet(f"color: {font_color}; font-family: '{font_family}'; font-size: {self.data['time_size']}pt; font-weight: bold;")
+        # 날짜 스타일
         self.lbl_date.setStyleSheet(f"color: {font_color}; font-family: '{font_family}'; font-size: {self.data['date_size']}pt; font-weight: bold;")
         
+        # 그립 색상 업데이트
         self.lbl_grip.setStyleSheet(f"color: {font_color}; background-color: transparent; font-size: 16px;")
         self.lbl_grip.adjustSize()
 
@@ -374,8 +375,8 @@ class DDayWidget(QWidget):
                     if d > 0: parts.append(f"{d}일")
                     if not parts: parts = ["0일"] # 당일이 아닌데 차이가 없는 경우 방지
                     
-                    # 예: 1년 2개월 3일 남음 (430일)
-                    item['detail'].setText(f"{' '.join(parts)}{suffix} ({abs(diff_days)}일)")
+                    # [수정] 괄호로 묶인 총 일수 제거
+                    item['detail'].setText(f"{' '.join(parts)}{suffix}")
                 
             except:
                 item['count'].setText("Error")
@@ -431,9 +432,6 @@ class DDayWidget(QWidget):
         if hasattr(self, 'app_icon'):
             msg.setWindowIcon(self.app_icon)
         
-        # [수정] 다크 스타일 제거 -> 기본 시스템 스타일
-        # msg.setStyleSheet(DARK_STYLESHEET) 
-        
         # [수정] 글자 색상을 시스템 기본으로 사용 (흰색 강제 제거)
         info_html = """
         <div style="font-family: 'Malgun Gothic', sans-serif; font-size: 13px;">
@@ -483,9 +481,6 @@ class SettingsDialog(QDialog):
         if hasattr(parent, 'app_icon'):
             self.setWindowIcon(parent.app_icon)
         self.resize(450, 600)
-        
-        # [수정] 다크 스타일 제거 -> 기본 시스템 스타일
-        # self.setStyleSheet(DARK_STYLESHEET)
         
         self.init_ui()
 
@@ -563,8 +558,6 @@ class SettingsDialog(QDialog):
         scroll.setWidgetResizable(True)
         # 스크롤 영역 내부 위젯도 배경색 지정
         self.items_widget = QWidget()
-        # [수정] 스크롤 컨텐츠 ID 제거 (스타일시트 제거했으므로 불필요)
-        # self.items_widget.setObjectName("scroll_content") 
         
         self.items_layout = QVBoxLayout(self.items_widget)
         self.items_layout.addStretch()
