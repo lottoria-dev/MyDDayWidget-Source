@@ -15,7 +15,7 @@
    - 시스템 트레이(System Tray) 아이콘을 통한 백그라운드 제어
 
 ## 🚀 설치 및 실행 방법 (Installation & Run)
-먼저 Python 3.x가 설치되어 있어야 합니다. 레포지토리를 클론한 후, 필수 라이브러리를 설치하고 실행합니다.
+이 프로젝트는 **Python 3.9+** 환경과 **PySide6**를 사용합니다.
 ```
 # 1. 필수 라이브러리 설치 (PySide6 기준)
 pip install PySide6 pillow
