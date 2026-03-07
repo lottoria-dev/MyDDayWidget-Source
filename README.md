@@ -46,6 +46,12 @@ python main.py
 ```
 
 ## 📄 라이선스 및 배포 (License)
+본 프로젝트는 독점 라이선스(Proprietary License)를 따릅니다.
+소스 코드는 학습 및 개인적 개선을 위해 공개되어 있으나, 정식 배포 페이지를 제외한 곳에서 임의의 수정 및 재배포를 금지합니다.
+상업적 이익을 목적으로 소스 코드를 도용하거나 재판매하는 행위는 금지됩니다.
+상세 내용은 LICENSE.md 파일을 확인해 주세요.
+
+## 개발자 정보
 - 개발일: 2026.01.21
 - 공식 배포 페이지: https://mathtime.kr/dday.html
 - Copyright 2026 lottoria-dev. All rights reserved.
