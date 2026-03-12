@@ -94,7 +94,7 @@ class GlassInfoDialog(QDialog):
                 <li><b>크기 :</b> 우측 하단(◢) 드래그</li>
             </ul>
             <hr style="background-color: rgba(0,0,0,0.1); border: 0; height: 1px; margin: 10px 0;">
-            <b>■ 버전 정보:</b> v2.0<br><br>
+            <b>■ 버전 정보:</b> v2.0.0<br><br>
             <b>■ 공식 배포 페이지</b><br>
             <a href="https://mathtime.kr/dday.html" style="color: #0078D7; text-decoration: none;">https://mathtime.kr/dday.html</a><br><br>
             <b>■ 개발자 정보</b><br>
