@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (QApplication, QWidget, QLabel, QVBoxLayout,
                              QHBoxLayout, QMenu, QFrame, QSizeGrip,
                              QSizePolicy, QSystemTrayIcon, QMessageBox)
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QFont, QIcon, QAction
+from PySide6.QtGui import QFont, QIcon, QAction, QPainter, QPainterPath, QColor
 
 # 사용자 정의 모듈 임포트
 from utils import resource_path, calculate_ymd_diff
@@ -52,7 +52,6 @@ class DDayWidget(QWidget):
         self.tray_icon.setIcon(self.app_icon)
         
         tray_menu = QMenu()
-        # [테마 적용] 트레이 메뉴 스타일 설정
         tray_menu.setAttribute(Qt.WA_TranslucentBackground)
         tray_menu.setStyleSheet(glass_theme.get_glass_menu_style())
 
@@ -91,7 +90,6 @@ class DDayWidget(QWidget):
         QApplication.instance().quit()
 
     def save_current_state(self):
-        """현재 위치/크기 정보와 함께 설정을 저장"""
         geometry = (self.x(), self.y(), self.width(), self.height())
         self.config_mgr.save_settings(self.data, geometry)
 
@@ -108,26 +106,33 @@ class DDayWidget(QWidget):
 
     def init_ui(self):
         self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(20, 10, 20, 20) 
-        self.layout.setSpacing(0) 
+        self.layout.setContentsMargins(20, 20, 20, 20) 
+        self.layout.setSpacing(12) 
         self.layout.setAlignment(Qt.AlignTop) 
         self.setLayout(self.layout)
+        
+        # 시계와 달력을 담을 디지털 시계 느낌의 둥근 컨테이너
+        self.clock_container = QWidget()
+        self.clock_layout = QVBoxLayout(self.clock_container)
+        self.clock_layout.setContentsMargins(10, 2, 10, 10)
+        self.clock_layout.setSpacing(2)
         
         # 시간 및 날짜
         self.lbl_time = QLabel("00:00:00")
         self.lbl_time.setAlignment(Qt.AlignCenter)
         self.lbl_time.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed) 
-        self.layout.addWidget(self.lbl_time)
+        self.clock_layout.addWidget(self.lbl_time)
         
         self.lbl_date = QLabel("0000-00-00 (월)")
         self.lbl_date.setAlignment(Qt.AlignCenter)
         self.lbl_date.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed) 
-        self.layout.addWidget(self.lbl_date)
+        self.clock_layout.addWidget(self.lbl_date)
         
-        # 구분선
+        self.layout.addWidget(self.clock_container)
+        
+        # 음각 효과를 주기 위한 구분선 설정
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
-        self.line.setFrameShadow(QFrame.Plain)
         self.layout.addWidget(self.line)
         
         # D-Day 아이템 컨테이너
@@ -152,89 +157,195 @@ class DDayWidget(QWidget):
             child = self.items_layout.takeAt(0)
             if child.widget(): child.widget().deleteLater()
             
-        font_color = self.data['text_color']
-        font_family = self.data['font_family']
-        self.labels = []
+        self.items_layout.setSpacing(4)
         
-        font_title = QFont(font_family, 12, QFont.Bold)
-        font_count = QFont(font_family, 15, QFont.Bold)
-        font_detail = QFont(font_family, 9)
+        # 투명 화이트 유리 & SF 마우스 오버 효과 (시계 영역)
+        self.clock_container.setObjectName("clockContainer")
+        self.clock_container.setStyleSheet("""
+            QWidget#clockContainer {
+                background-color: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                border-radius: 15px;
+            }
+            QWidget#clockContainer:hover {
+                background-color: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.6);
+            }
+            QLabel { background: transparent; border: none; }
+        """)
+        
+        self.line.setStyleSheet("""
+            QFrame {
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+                background: transparent;
+                max-height: 2px;
+            }
+        """)
+        
+        # 각각의 글꼴, 크기, 색상 데이터 불러오기
+        font_time = QFont(self.data.get('font_time', 'Segoe UI'), self.data.get('size_time', 45), QFont.Bold)
+        font_date = QFont(self.data.get('font_date', 'Segoe UI'), self.data.get('size_date', 12), QFont.Bold)
+        font_dday_title = QFont(self.data.get('font_dday_title', 'Segoe UI'), self.data.get('size_dday_title', 12), QFont.Bold)
+        font_dday_count = QFont(self.data.get('font_dday_count', 'Segoe UI'), self.data.get('size_dday_count', 15), QFont.Bold)
+        font_dday_date = QFont(self.data.get('font_dday_date', 'Segoe UI'), self.data.get('size_dday_date', 8))
+
+        color_time = self.data.get('color_time', '#ffffff')
+        color_date = self.data.get('color_date', '#ffffff')
+        color_dday_title = self.data.get('color_dday_title', '#ffffff')
+        color_dday_count = self.data.get('color_dday_count', '#ff6b6b')
+        color_dday_date = self.data.get('color_dday_date', '#ffffff')
+        
+        self.labels = []
         
         for item in self.data['items']:
             row = QWidget()
+            row.setObjectName("ddayRow")
             row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 5, 0, 5)
+            
+            # 투명 화이트 유리 & SF 마우스 오버 효과 (D-Day 영역)
+            row.setStyleSheet("""
+                QWidget#ddayRow {
+                    background-color: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 12px;
+                }
+                QWidget#ddayRow:hover {
+                    background-color: rgba(255, 255, 255, 0.15);
+                    border: 1px solid rgba(255, 255, 255, 0.6);
+                }
+                QLabel { background: transparent; border: none; }
+            """)
+            row_layout.setContentsMargins(10, 4, 10, 6)
             
             lbl_title = QLabel(item['title'])
-            lbl_title.setFont(font_title)
-            lbl_title.setStyleSheet(f"color: {font_color};")
-            row_layout.addWidget(lbl_title, alignment=Qt.AlignTop)
+            lbl_title.setFont(font_dday_title)
+            lbl_title.setStyleSheet(f"color: {color_dday_title};")
             
+            row_layout.addWidget(lbl_title, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+            
+            # 우측 레이아웃 (D-Day 카운트)
             right_box = QWidget()
             right_layout = QVBoxLayout(right_box)
             right_layout.setContentsMargins(0, 0, 0, 0)
             right_layout.setSpacing(2)
             
             lbl_count = QLabel("D-?")
-            lbl_count.setFont(font_count)
-            lbl_count.setAlignment(Qt.AlignRight)
+            lbl_count.setFont(font_dday_count)
+            lbl_count.setStyleSheet(f"color: {color_dday_count};")
+            lbl_count.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             
             lbl_detail = QLabel("...")
-            lbl_detail.setFont(font_detail)
-            lbl_detail.setStyleSheet(f"color: {font_color};")
-            lbl_detail.setAlignment(Qt.AlignRight)
+            lbl_detail.setFont(font_dday_date)
+            lbl_detail.setStyleSheet(f"color: {color_dday_date};") 
+            lbl_detail.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             
             right_layout.addWidget(lbl_count)
             right_layout.addWidget(lbl_detail)
-            row_layout.addWidget(right_box)
+            row_layout.addWidget(right_box, alignment=Qt.AlignRight | Qt.AlignVCenter)
             
             self.items_layout.addWidget(row)
             self.labels.append({'date': item['date'], 'count': lbl_count, 'detail': lbl_detail})
             
-        self.line.setStyleSheet(f"color: {font_color}; background-color: {font_color};")
-        self.lbl_time.setStyleSheet(f"color: {font_color}; font-family: '{font_family}'; font-size: {self.data['time_size']}pt; font-weight: bold;")
-        self.lbl_date.setStyleSheet(f"color: {font_color}; font-family: '{font_family}'; font-size: {self.data['date_size']}pt; font-weight: bold;")
-        self.lbl_grip.setStyleSheet(f"color: {font_color}; background-color: transparent; font-size: 16px;")
+        # 메인 시계 및 날짜 업데이트
+        self.lbl_time.setFont(font_time)
+        self.lbl_time.setStyleSheet(f"color: {color_time}; background: transparent;")
+        
+        self.lbl_date.setFont(font_date)
+        self.lbl_date.setStyleSheet(f"color: {color_date}; background: transparent;")
+        
+        self.lbl_grip.setStyleSheet("color: rgba(255,255,255,0.5); background-color: transparent; font-size: 16px;")
         self.lbl_grip.adjustSize()
+        
+        self.update()
 
     def update_counts(self):
         now = datetime.now()
         today = now.date()
         
-        self.lbl_time.setText(now.strftime("%H:%M:%S"))
-        days = ["월", "화", "수", "목", "금", "토", "일"]
-        self.lbl_date.setText(f"{now.strftime('%Y-%m-%d')} ({days[now.weekday()]})")
+        # 포맷 설정값 불러오기
+        time_format_setting = self.data.get('time_format', '24h')
+        day_fmt = self.data.get('day_format', 'kor')
+        date_fmt = self.data.get('date_format', 'yyyy-mm-dd')
         
+        # 1. 시계 표기 포맷 적용 (12h/24h)
+        if time_format_setting == '12h':
+            am_pm_str = ("오전" if now.hour < 12 else "오후") if day_fmt == 'kor' else ("AM" if now.hour < 12 else "PM")
+            hr = now.hour % 12
+            if hr == 0: hr = 12
+            
+            # AM/PM을 작게 표시하기 위해 HTML 태그 사용 (현재 시간 폰트 크기의 약 45% 크기 적용)
+            base_size = self.data.get('size_time', 45)
+            small_size = max(10, int(base_size * 0.25))
+            self.lbl_time.setText(f"<span style='font-size: {small_size}pt;'>{am_pm_str}</span> {hr:02d}:{now.strftime('%M:%S')}")
+        else:
+            self.lbl_time.setText(now.strftime("%H:%M:%S"))
+            
+        # 2. 요일 표기 포맷 적용
+        if day_fmt == 'eng':
+            days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        else:
+            days = ["월", "화", "수", "목", "금", "토", "일"]
+        day_str = days[now.weekday()]
+        
+        # 3. 날짜 표기 포맷 적용
+        if date_fmt == 'mm/dd/yyyy':
+            date_str = now.strftime('%m/%d/%Y')
+        elif date_fmt == 'dd/mm/yyyy':
+            date_str = now.strftime('%d/%m/%Y')
+        else:
+            date_str = now.strftime('%Y-%m-%d')
+            
+        self.lbl_date.setText(f"{date_str} ({day_str})")
+        
+        # 4. D-Day 계산 및 업데이트
         for item in self.labels:
             try:
                 target_dt = datetime.strptime(item['date'], "%Y-%m-%d")
                 target_date = target_dt.date()
                 diff_days = (target_date - today).days
                 
-                color = self.data['count_color']
+                color = self.data.get('color_dday_count', '#ff6b6b')
                 
                 if diff_days > 0:
-                    txt = f"D-{diff_days}"; suffix = " 남음"
+                    txt = f"D-{diff_days}"; suffix = " 남음" if day_fmt == 'kor' else " left"
                 elif diff_days < 0:
-                    txt = f"D+{abs(diff_days)}"; suffix = " 지남"
+                    txt = f"D+{abs(diff_days)}"; suffix = " 지남" if day_fmt == 'kor' else " passed"
                 else:
                     txt = "D-Day"; suffix = ""
                 
                 item['count'].setText(txt)
                 item['count'].setStyleSheet(f"color: {color};")
                 
-                if diff_days == 0:
-                    item['detail'].setText("오늘입니다!")
+                # 유리 메뉴 스타일에 맞춰 날짜와 요일 표시
+                day_item_str = days[target_date.weekday()]
+                if date_fmt == 'mm/dd/yyyy':
+                    t_date_str = target_date.strftime('%m/%d/%Y')
+                elif date_fmt == 'dd/mm/yyyy':
+                    t_date_str = target_date.strftime('%d/%m/%Y')
                 else:
-                    y, m, d = calculate_ymd_diff(today, target_date)
-                    parts = []
-                    if y > 0: parts.append(f"{y}년")
-                    if m > 0: parts.append(f"{m}개월")
-                    if d > 0: parts.append(f"{d}일")
-                    if not parts: parts = ["0일"]
-                    item['detail'].setText(f"{' '.join(parts)}{suffix}")
+                    t_date_str = target_date.strftime('%Y-%m-%d')
+                item['detail'].setText(f"{t_date_str} ({day_item_str})")
+                
             except:
                 item['count'].setText("Error")
+
+    # 유리판 배경 렌더링
+    def paintEvent(self, event):
+        if self.data.get('use_glass_background', False):
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            path = QPainterPath()
+            path.addRoundedRect(0, 0, self.width(), self.height(), 15, 15)
+            
+            # 투명한 화이트 톤 유리 (SF 공상과학 느낌)
+            bg_color = QColor(255, 255, 255, 20)
+            painter.fillPath(path, bg_color)
+            
+            # 외곽 테두리 하이라이트로 빛나는 유리 질감 극대화
+            painter.setPen(QColor(255, 255, 255, 60))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawPath(path)
 
     # 이벤트 처리
     def mousePressEvent(self, event):
@@ -252,8 +363,6 @@ class DDayWidget(QWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
-        
-        # [테마 적용] 우클릭 메뉴 스타일 설정
         menu.setAttribute(Qt.WA_TranslucentBackground)
         menu.setStyleSheet(glass_theme.get_glass_menu_style())
         
@@ -285,7 +394,6 @@ class DDayWidget(QWidget):
         dlg.exec()
 
     def open_settings(self, checked=False):
-        # 현재 화면 상태(위치, 크기)를 data에 반영 후 설정 창 오픈
         self.data['x'] = self.x()
         self.data['y'] = self.y()
         self.data['w'] = self.width()
@@ -293,7 +401,6 @@ class DDayWidget(QWidget):
         
         dlg = SettingsDialog(self.data, self)
         if dlg.exec():
-            # 변경된 데이터 받아오기
             self.data = dlg.get_data()
             self.apply_window_settings()
             self.refresh_widgets()
