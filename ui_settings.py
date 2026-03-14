@@ -85,7 +85,7 @@ class GlassInfoDialog(QDialog):
         info_label = QLabel()
         info_label.setOpenExternalLinks(True) 
         info_html = """
-        <div style="font-family: 'Segoe UI', 'Segoe UI', sans-serif; font-size: 13px; color: #202020;">
+        <div style="font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; font-size: 13px; color: #202020;">
             <h3 style="margin-bottom: 10px;">■ My D-Day Widget</h3>
             <p><b>[사용 방법]</b></p>
             <ul style="margin-top: 5px; padding-left: 20px;">
@@ -94,11 +94,11 @@ class GlassInfoDialog(QDialog):
                 <li><b>크기 :</b> 우측 하단(◢) 드래그</li>
             </ul>
             <hr style="background-color: rgba(0,0,0,0.1); border: 0; height: 1px; margin: 10px 0;">
-            <b>■ 버전 정보:</b> v2.0.0<br><br>
+            <b>■ 버전 정보:</b> v2.1.0<br><br>
             <b>■ 공식 배포 페이지</b><br>
             <a href="https://mathtime.kr/dday.html" style="color: #0078D7; text-decoration: none;">https://mathtime.kr/dday.html</a><br><br>
             <b>■ 개발자 정보</b><br>
-            - 최신 업데이트: 2026.03.12<br>
+            - 최근 업데이트: 2026.03.14<br>
             - ✉: trsketch@gmail.com<br>
             Copyright 2026 lottoria-dev. All rights reserved.<br><br>
             <span style='color: #d9534f;'><b>정식 배포 페이지를 제외한 곳에서<br>
@@ -198,7 +198,7 @@ class SettingsDialog(QDialog):
             self.setWindowIcon(parent.app_icon)
             
         # 폭을 넓혀 탭 메뉴가 쾌적하게 보이도록 설정
-        self.resize(560, 460)
+        self.resize(560, 480)
         
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyleSheet(glass_theme.get_glass_dialog_style())
@@ -357,6 +357,10 @@ class SettingsDialog(QDialog):
         self.chk_glass_bg.setChecked(self.data.get('use_glass_background', False))
         opt_layout.addWidget(self.chk_glass_bg)
         
+        self.chk_calendar = QCheckBox("투명 달력 표시")
+        self.chk_calendar.setChecked(self.data.get('show_calendar', False))
+        opt_layout.addWidget(self.chk_calendar)
+        
         layout.addLayout(opt_layout)
         layout.addStretch()
 
@@ -470,6 +474,7 @@ class SettingsDialog(QDialog):
         self.combo_day_format.setCurrentIndex(0)
         self.chk_top.setChecked(DEFAULT_DATA['topmost'])
         self.chk_glass_bg.setChecked(DEFAULT_DATA['use_glass_background'])
+        self.chk_calendar.setChecked(DEFAULT_DATA.get('show_calendar', False))
         
         # 2. 5가지 개별 세부 디자인 요소 초기화
         for key_prefix, controls in self.style_controls.items():
@@ -567,6 +572,7 @@ class SettingsDialog(QDialog):
         self.data['alpha'] = self.slider_alpha.value() / 100.0
         self.data['topmost'] = self.chk_top.isChecked()
         self.data['use_glass_background'] = self.chk_glass_bg.isChecked()
+        self.data['show_calendar'] = self.chk_calendar.isChecked()
         
         self.data['time_format'] = '24h' if self.combo_time_format.currentIndex() == 0 else '12h'
         df_idx = self.combo_date_format.currentIndex()

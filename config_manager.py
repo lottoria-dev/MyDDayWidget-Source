@@ -6,13 +6,14 @@ from datetime import datetime
 # 기존 'dday_config_pyside.ini'에서 'dday_config.ini'로 파일명 변경
 CONFIG_FILE = 'dday_config.ini'
 
-# 기본 설정값 정의 (버전 3.0: 5가지 요소 세분화 및 탭 스타일)
+# 기본 설정값 정의 (버전 2.0: 5가지 요소 세분화 및 탭 스타일)
 DEFAULT_DATA = {
     'x': 100, 'y': 100, 'w': 350, 'h': 250, 
     'items': [{"title": "D-Day", "date": datetime.now().strftime("%Y-%m-%d")}],
     'alpha': 0.9,
     'topmost': False,
     'use_glass_background': False,
+    'show_calendar': False,
     'time_format': '24h',
     'date_format': 'yyyy-mm-dd',
     'day_format': 'kor',
@@ -60,6 +61,7 @@ class ConfigManager:
                     data['alpha'] = config.getfloat('Window', 'alpha', fallback=DEFAULT_DATA['alpha'])
                     data['topmost'] = config.getboolean('Window', 'topmost', fallback=DEFAULT_DATA['topmost'])
                     data['use_glass_background'] = config.getboolean('Window', 'use_glass_background', fallback=DEFAULT_DATA['use_glass_background'])
+                    data['show_calendar'] = config.getboolean('Window', 'show_calendar', fallback=DEFAULT_DATA['show_calendar'])
                     
                     data['time_format'] = config.get('Window', 'time_format', fallback=DEFAULT_DATA['time_format'])
                     data['date_format'] = config.get('Window', 'date_format', fallback=DEFAULT_DATA['date_format'])
@@ -121,6 +123,7 @@ class ConfigManager:
             'alpha': str(data['alpha']),
             'topmost': str(data['topmost']),
             'use_glass_background': str(data['use_glass_background']),
+            'show_calendar': str(data['show_calendar']),
             'time_format': data['time_format'],
             'date_format': data['date_format'],
             'day_format': data['day_format'],
