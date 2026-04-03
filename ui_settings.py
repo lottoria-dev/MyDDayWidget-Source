@@ -24,7 +24,7 @@ class GlassColorDialog(QColorDialog):
         path = QPainterPath()
         path.addRoundedRect(0, 0, self.width(), self.height(), 15, 15)
         painter.fillPath(path, glass_theme.get_glass_background_brush())
-        painter.setPen(QColor(255, 255, 255, 100))
+        painter.setPen(QColor(200, 200, 200, 100))
         painter.drawPath(path)
 
 class GlassInfoDialog(QDialog):
@@ -46,9 +46,9 @@ class GlassInfoDialog(QDialog):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         rect_path = QPainterPath()
-        rect_path.addRoundedRect(0, 0, self.width(), self.height(), 20, 20)
+        rect_path.addRoundedRect(0, 0, self.width(), self.height(), 16, 16)
         painter.fillPath(rect_path, glass_theme.get_glass_background_brush())
-        painter.setPen(QColor(255, 255, 255, 150))
+        painter.setPen(QColor(200, 200, 200, 150))
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(rect_path)
 
@@ -75,7 +75,7 @@ class GlassInfoDialog(QDialog):
         
         btn_close = QPushButton("✕")
         btn_close.setFixedSize(30, 30)
-        btn_close.setStyleSheet("QPushButton { background: transparent; border: none; font-size: 14pt; color: #505050; } QPushButton:hover { color: #d32f2f; }")
+        btn_close.setStyleSheet("QPushButton { background: transparent; border: none; font-size: 14pt; color: #707070; } QPushButton:hover { color: #d32f2f; background: #ffebee; border-radius: 15px; }")
         btn_close.clicked.connect(self.accept)
         header_layout.addWidget(btn_close)
         
@@ -85,24 +85,22 @@ class GlassInfoDialog(QDialog):
         info_label = QLabel()
         info_label.setOpenExternalLinks(True) 
         info_html = """
-        <div style="font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; font-size: 13px; color: #202020;">
-            <h3 style="margin-bottom: 10px;">■ My D-Day Widget</h3>
+        <div style="font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; font-size: 13px; color: #404040;">
+            <h3 style="margin-bottom: 10px; color: #1a73e8;">■ My D-Day Widget</h3>
             <p><b>[사용 방법]</b></p>
             <ul style="margin-top: 5px; padding-left: 20px;">
                 <li><b>이동 :</b> 마우스 드래그</li>
                 <li><b>설정 :</b> 위젯 더블 클릭</li>
                 <li><b>크기 :</b> 우측 하단(◢) 드래그</li>
             </ul>
-            <hr style="background-color: rgba(0,0,0,0.1); border: 0; height: 1px; margin: 10px 0;">
-            <b>■ 버전 정보:</b> v2.1.0<br><br>
+            <hr style="background-color: rgba(0,0,0,0.05); border: 0; height: 1px; margin: 15px 0;">
+            <b>■ 버전 정보:</b> v2.2.1<br><br>
             <b>■ 공식 배포 페이지</b><br>
-            <a href="https://mathtime.kr/dday.html" style="color: #0078D7; text-decoration: none;">https://mathtime.kr/dday.html</a><br><br>
+            <a href="https://mathtime.kr/?page=dday" style="color: #1a73e8; text-decoration: none;">https://mathtime.kr/?page=dday</a><br><br>
             <b>■ 개발자 정보</b><br>
-            - 최근 업데이트: 2026.03.14<br>
-            - ✉: trsketch@gmail.com<br>
-            Copyright 2026 lottoria-dev. All rights reserved.<br><br>
-            <span style='color: #d9534f;'><b>정식 배포 페이지를 제외한 곳에서<br>
-            임의의 수정 및 재배포를 금지합니다.</b></span>
+            - 최근 업데이트: 2026.04.03<br>
+            - ✉: mathtime.ai@gmail.com<br>
+            Copyright 2026 lottoria-dev. All rights reserved.<br>
         </div>
         """
         info_label.setText(info_html)
@@ -117,11 +115,11 @@ class GlassFontComboBox(QFontComboBox):
             QComboBox::down-arrow { image: none; } 
             QComboBox::drop-down { border: none; background: transparent; width: 24px; }
             QComboBox QAbstractItemView {
-                background-color: rgba(255, 255, 255, 240);
+                background-color: #ffffff;
                 color: #202020;
-                selection-background-color: #0078D7;
+                selection-background-color: #006cd9;
                 selection-color: white;
-                border: 1px solid #dcdcdc;
+                border: 1px solid #e0e4e8;
                 border-radius: 6px;
                 outline: 0px;
             }
@@ -131,7 +129,7 @@ class GlassFontComboBox(QFontComboBox):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QColor("#555555"))
+        painter.setPen(QColor("#808080"))
         f = self.font()
         f.setPointSize(8) 
         painter.setFont(f)
@@ -145,11 +143,11 @@ class GlassComboBox(QComboBox):
             QComboBox::down-arrow { image: none; } 
             QComboBox::drop-down { border: none; background: transparent; width: 24px; }
             QComboBox QAbstractItemView {
-                background-color: rgba(255, 255, 255, 240);
+                background-color: #ffffff;
                 color: #202020;
-                selection-background-color: #0078D7;
+                selection-background-color: #006cd9;
                 selection-color: white;
-                border: 1px solid #dcdcdc;
+                border: 1px solid #e0e4e8;
                 border-radius: 6px;
                 outline: 0px;
             }
@@ -159,7 +157,7 @@ class GlassComboBox(QComboBox):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QColor("#555555"))
+        painter.setPen(QColor("#808080"))
         f = self.font()
         f.setPointSize(8)
         painter.setFont(f)
@@ -178,11 +176,31 @@ class GlassDateEdit(QDateEdit):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QColor("#555555"))
+        painter.setPen(QColor("#808080"))
         f = self.font()
         f.setPointSize(8)
         painter.setFont(f)
         painter.drawText(self.rect().adjusted(0, 0, -8, 0), Qt.AlignRight | Qt.AlignVCenter, "▼")
+
+class GlassSpinBox(QSpinBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(QColor("#606060"))
+        f = self.font()
+        f.setPointSize(7)
+        painter.setFont(f)
+        
+        # 우측 버튼 영역(약 22px 폭)의 상/하단 중앙에 텍스트로 화살표 직접 그리기
+        up_rect = self.rect().adjusted(self.width() - 22, 0, 0, -self.height() // 2)
+        painter.drawText(up_rect, Qt.AlignCenter, "▲")
+        
+        down_rect = self.rect().adjusted(self.width() - 22, self.height() // 2, 0, 0)
+        painter.drawText(down_rect, Qt.AlignCenter, "▼")
 
 class SettingsDialog(QDialog):
     def __init__(self, data, parent=None):
@@ -197,22 +215,23 @@ class SettingsDialog(QDialog):
         if parent and hasattr(parent, 'app_icon'):
             self.setWindowIcon(parent.app_icon)
             
-        # 폭을 넓혀 탭 메뉴가 쾌적하게 보이도록 설정
-        self.resize(560, 480)
+        # 쾌적한 인터페이스를 위해 사이즈 조정
+        self.resize(600, 580)
         
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyleSheet(glass_theme.get_glass_dialog_style())
 
-        self.style_controls = {} # 글꼴/크기/색상 컨트롤 저장용
+        self.style_controls = {} 
         self.init_ui()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         rect_path = QPainterPath()
-        rect_path.addRoundedRect(0, 0, self.width(), self.height(), 20, 20)
+        rect_path.addRoundedRect(0, 0, self.width(), self.height(), 16, 16)
         painter.fillPath(rect_path, glass_theme.get_glass_background_brush())
-        painter.setPen(QColor(255, 255, 255, 150))
+        # 외곽 테두리를 조금 더 은은하게 변경
+        painter.setPen(QColor(200, 200, 200, 150))
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(rect_path)
 
@@ -228,50 +247,30 @@ class SettingsDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setContentsMargins(30, 30, 30, 30) # 여백을 늘려 모던한 느낌 강조
         self.setLayout(layout)
         
         header_layout = QHBoxLayout()
-        lbl_header = QLabel("D-Day Settings")
-        lbl_header.setStyleSheet("font-size: 18pt; font-weight: bold; color: #101010;")
+        lbl_header = QLabel("환경 설정")
+        lbl_header.setStyleSheet("font-size: 18pt; font-weight: 800; color: #1a1a1a;")
         header_layout.addWidget(lbl_header)
         header_layout.addStretch()
         
         btn_close = QPushButton("✕")
-        btn_close.setFixedSize(30, 30)
+        btn_close.setFixedSize(32, 32)
         btn_close.setStyleSheet("""
-            QPushButton { background-color: transparent; color: #505050; border: none; font-size: 14pt; }
-            QPushButton:hover { color: #d32f2f; }
+            QPushButton { background-color: transparent; color: #888; border: none; font-size: 14pt; }
+            QPushButton:hover { color: #d32f2f; background: #ffebee; border-radius: 16px; }
         """)
         btn_close.clicked.connect(self.reject)
         header_layout.addWidget(btn_close)
         
         layout.addLayout(header_layout)
-        layout.addSpacing(10)
+        layout.addSpacing(15)
         
         # --- 탭 구성 시작 ---
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("""
-            QTabWidget::pane { border: none; background: transparent; }
-            QTabBar::tab {
-                background: rgba(255, 255, 255, 0.4);
-                border: 1px solid rgba(0, 0, 0, 0.1);
-                border-bottom: none;
-                padding: 8px 15px;
-                margin-right: 3px;
-                border-top-left-radius: 6px;
-                border-top-right-radius: 6px;
-                color: #555;
-                font-weight: bold;
-            }
-            QTabBar::tab:selected {
-                background: rgba(255, 255, 255, 0.8);
-                border: 1px solid #0078D7;
-                border-bottom: 2px solid #0078D7;
-                color: #0078D7;
-            }
-            QTabBar::tab:hover:!selected { background: rgba(255, 255, 255, 0.6); }
-        """)
+        # 스타일은 glass_theme.py에서 전역으로 가져오므로 별도 지정 불필요
         
         tab_general = QWidget()
         tab_style = QWidget()
@@ -282,42 +281,51 @@ class SettingsDialog(QDialog):
         self._init_items_tab(tab_items)
         
         self.tabs.addTab(tab_general, "일반 설정")
-        self.tabs.addTab(tab_style, "세부 디자인")
+        self.tabs.addTab(tab_style, "디자인")
         self.tabs.addTab(tab_items, "D-Day 관리")
         
         layout.addWidget(self.tabs)
-        layout.addSpacing(10)
+        layout.addSpacing(15)
         # --- 탭 구성 끝 ---
         
         # 하단 버튼 영역
         bottom_layout = QHBoxLayout()
         
         btn_reset = QPushButton("초기화")
+        btn_reset.setMinimumWidth(100)
         btn_reset.setStyleSheet("""
-            QPushButton { background-color: #f5f5f5; color: #555555; border: 1px solid #dcdcdc; font-weight: bold; padding: 10px; border-radius: 6px; }
-            QPushButton:hover { background-color: #e8e8e8; }
+            QPushButton { background-color: #ffffff; color: #505050; font-weight: 600; padding: 10px; border-radius: 8px; }
+            QPushButton:hover { background-color: #f0f2f5; }
         """)
         btn_reset.clicked.connect(self.reset_to_defaults)
         
         btn_save = QPushButton("저장 및 적용")
-        btn_save.clicked.connect(self.accept)
+        btn_save.setMinimumWidth(120)
         btn_save.setStyleSheet("""
-            QPushButton { background-color: #0078d7; color: white; border: none; font-weight: bold; padding: 10px; border-radius: 6px; }
-            QPushButton:hover { background-color: #0063b1; }
+            QPushButton { background-color: #006cd9; color: white; border: none; font-weight: 600; padding: 10px; border-radius: 8px; }
+            QPushButton:hover { background-color: #0056b3; }
+            QPushButton:pressed { background-color: #004494; }
         """)
+        btn_save.clicked.connect(self.accept)
         
         bottom_layout.addWidget(btn_reset)
+        bottom_layout.addStretch()
         bottom_layout.addWidget(btn_save)
         layout.addLayout(bottom_layout)
 
     def _init_general_tab(self, tab):
+        # 탭 안쪽 여백 추가
         layout = QVBoxLayout(tab)
-        layout.setSpacing(15)
+        layout.setContentsMargins(20, 25, 20, 20)
+        layout.setSpacing(20)
         
         grid = QGridLayout()
-        grid.setSpacing(12)
+        grid.setSpacing(15)
         
-        grid.addWidget(QLabel("창 투명도 (전체):"), 0, 0)
+        lbl_alpha = QLabel("창 투명도:")
+        lbl_alpha.setStyleSheet("font-weight: 600; color: #404040;")
+        grid.addWidget(lbl_alpha, 0, 0)
+        
         self.slider_alpha = QSlider(Qt.Horizontal)
         self.slider_alpha.setRange(20, 100)
         self.slider_alpha.setValue(int(self.data['alpha'] * 100))
@@ -325,13 +333,19 @@ class SettingsDialog(QDialog):
             self.slider_alpha.valueChanged.connect(lambda v: self.parent().setWindowOpacity(v/100))
         grid.addWidget(self.slider_alpha, 0, 1)
 
-        grid.addWidget(QLabel("시간 표기:"), 1, 0)
+        lbl_time = QLabel("시간 표기:")
+        lbl_time.setStyleSheet("font-weight: 600; color: #404040;")
+        grid.addWidget(lbl_time, 1, 0)
+        
         self.combo_time_format = GlassComboBox()
         self.combo_time_format.addItems(["24시간제", "12시간제 (AM/PM)"])
         self.combo_time_format.setCurrentIndex(0 if self.data.get('time_format', '24h') == '24h' else 1)
         grid.addWidget(self.combo_time_format, 1, 1)
 
-        grid.addWidget(QLabel("날짜 표기:"), 2, 0)
+        lbl_date = QLabel("날짜 표기:")
+        lbl_date.setStyleSheet("font-weight: 600; color: #404040;")
+        grid.addWidget(lbl_date, 2, 0)
+        
         self.combo_date_format = GlassComboBox()
         self.combo_date_format.addItems(["YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY"])
         df_val = self.data.get('date_format', 'yyyy-mm-dd')
@@ -340,13 +354,22 @@ class SettingsDialog(QDialog):
         else: self.combo_date_format.setCurrentIndex(0)
         grid.addWidget(self.combo_date_format, 2, 1)
 
-        grid.addWidget(QLabel("요일 표기:"), 3, 0)
+        lbl_day = QLabel("요일 표기:")
+        lbl_day.setStyleSheet("font-weight: 600; color: #404040;")
+        grid.addWidget(lbl_day, 3, 0)
+        
         self.combo_day_format = GlassComboBox()
         self.combo_day_format.addItems(["한국어 (월, 화...)", "영어 (Mon, Tue...)"])
         self.combo_day_format.setCurrentIndex(0 if self.data.get('day_format', 'kor') == 'kor' else 1)
         grid.addWidget(self.combo_day_format, 3, 1)
 
         layout.addLayout(grid)
+        
+        # 선
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("background-color: #eaedf0; max-height: 1px; border: none;")
+        layout.addWidget(line)
         
         opt_layout = QHBoxLayout()
         self.chk_top = QCheckBox("항상 위에 고정")
@@ -366,7 +389,7 @@ class SettingsDialog(QDialog):
 
     def _init_style_tab(self, tab):
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setContentsMargins(10, 15, 10, 10)
         
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -377,19 +400,27 @@ class SettingsDialog(QDialog):
         content.setStyleSheet("background: transparent;")
         v_layout = QVBoxLayout(content)
         v_layout.setSpacing(15)
+        v_layout.setContentsMargins(10, 10, 10, 10)
         
-        # 디자인 요소들을 5개의 행으로 세분화 생성
+        # 세분화 생성 (달력 추가)
         self.add_style_row("현재 시간", "time", v_layout)
         self.add_style_row("현재 날짜", "date", v_layout)
         
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet("background-color: rgba(0,0,0,0.1); max-height: 1px;")
-        v_layout.addWidget(line)
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        line1.setStyleSheet("background-color: #eaedf0; max-height: 1px; border: none;")
+        v_layout.addWidget(line1)
         
         self.add_style_row("D-Day 제목", "dday_title", v_layout)
         self.add_style_row("남은 일수", "dday_count", v_layout)
         self.add_style_row("목표 날짜", "dday_date", v_layout)
+        
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setStyleSheet("background-color: #eaedf0; max-height: 1px; border: none;")
+        v_layout.addWidget(line2)
+        
+        self.add_style_row("달력", "calendar", v_layout)
         
         v_layout.addStretch()
         scroll.setWidget(content)
@@ -399,38 +430,52 @@ class SettingsDialog(QDialog):
         row = QWidget()
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(10)
         
         lbl = QLabel(name)
         lbl.setFixedWidth(75)
-        lbl.setStyleSheet("font-weight: bold;")
+        lbl.setStyleSheet("font-weight: 600; color: #404040;")
         
         cmb_font = GlassFontComboBox()
         cmb_font.setCurrentFont(QFont(self.data.get(f'font_{key_prefix}', 'Segoe UI')))
-        cmb_font.setFixedWidth(180)
+        cmb_font.setFixedWidth(160)
         
-        spin_size = QSpinBox()
+        lbl_size = QLabel("크기:")
+        lbl_size.setStyleSheet("color: #606060;")
+        spin_size = GlassSpinBox() # <--- GlassSpinBox로 변경 적용된 부분
         spin_size.setRange(5, 150)
         spin_size.setValue(self.data.get(f'size_{key_prefix}', 12))
         
+        lbl_color = QLabel("색상:")
+        lbl_color.setStyleSheet("color: #606060;")
         btn_color = QPushButton()
-        btn_color.setFixedSize(24, 24)
+        btn_color.setFixedSize(26, 26)
         current_color = self.data.get(f'color_{key_prefix}', '#ffffff')
-        btn_color.setStyleSheet(f"background-color: {current_color}; border: 1px solid #888; border-radius: 4px;")
+        # 모던한 색상 버튼
+        btn_color.setStyleSheet(f"""
+            background-color: {current_color}; 
+            border: 1px solid #d0d0d0; 
+            border-radius: 13px; /* 원형 */
+        """)
         btn_color.clicked.connect(lambda _, k=f'color_{key_prefix}', b=btn_color: self._pick_color(k, b))
         
         row_layout.addWidget(lbl)
         row_layout.addWidget(cmb_font)
-        row_layout.addWidget(QLabel("크기:"))
+        row_layout.addSpacing(5)
+        row_layout.addWidget(lbl_size)
         row_layout.addWidget(spin_size)
-        row_layout.addWidget(QLabel("색상:"))
+        row_layout.addSpacing(5)
+        row_layout.addWidget(lbl_color)
         row_layout.addWidget(btn_color)
+        row_layout.addStretch()
         
         layout.addWidget(row)
         self.style_controls[key_prefix] = {'font': cmb_font, 'size': spin_size, 'btn': btn_color}
 
     def _init_items_tab(self, tab):
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setContentsMargins(15, 20, 15, 15)
+        layout.setSpacing(15)
         
         h_sort_layout = QHBoxLayout()
         btn_sort_near = QPushButton("가까운 날짜 순 (▲)")
@@ -450,6 +495,7 @@ class SettingsDialog(QDialog):
         self.items_widget.setStyleSheet("background: transparent;")
         self.items_layout = QVBoxLayout(self.items_widget)
         self.items_layout.setContentsMargins(0, 0, 0, 0)
+        self.items_layout.setSpacing(8)
         self.items_layout.addStretch()
         scroll.setWidget(self.items_widget)
         layout.addWidget(scroll)
@@ -460,8 +506,8 @@ class SettingsDialog(QDialog):
             
         btn_add = QPushButton("+ D-Day 추가")
         btn_add.setStyleSheet("""
-            QPushButton { background-color: #f0f8ff; color: #0078d7; border: 1px solid #0078d7; font-weight: bold; }
-            QPushButton:hover { background-color: #e6f2ff; }
+            QPushButton { background-color: #f0f7ff; color: #006cd9; border: 1px dashed #006cd9; font-weight: bold; padding: 8px; border-radius: 8px;}
+            QPushButton:hover { background-color: #e0f0ff; border: 1px solid #006cd9; }
         """)
         btn_add.clicked.connect(lambda checked: self.add_item_row("D-Day", QDate.currentDate().toString("yyyy-MM-dd")))
         layout.addWidget(btn_add)
@@ -476,21 +522,22 @@ class SettingsDialog(QDialog):
         self.chk_glass_bg.setChecked(DEFAULT_DATA['use_glass_background'])
         self.chk_calendar.setChecked(DEFAULT_DATA.get('show_calendar', False))
         
-        # 2. 5가지 개별 세부 디자인 요소 초기화
+        # 2. 개별 세부 디자인 요소 초기화
         for key_prefix, controls in self.style_controls.items():
             controls['font'].setCurrentFont(QFont(DEFAULT_DATA[f'font_{key_prefix}']))
             controls['size'].setValue(DEFAULT_DATA[f'size_{key_prefix}'])
             
             default_color = DEFAULT_DATA[f'color_{key_prefix}']
             self.data[f'color_{key_prefix}'] = default_color
-            controls['btn'].setStyleSheet(f"background-color: {default_color}; border: 1px solid #888; border-radius: 4px;")
+            controls['btn'].setStyleSheet(f"background-color: {default_color}; border: 1px solid #d0d0d0; border-radius: 13px;")
 
     def add_item_row(self, title, date):
         row = QWidget()
         row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 5, 0, 5)
+        row_layout.setContentsMargins(0, 0, 0, 0)
         
         edt_title = QLineEdit(title)
+        edt_title.setPlaceholderText("제목 입력")
         
         edt_date = GlassDateEdit()
         edt_date.setCalendarPopup(True)
@@ -504,21 +551,21 @@ class SettingsDialog(QDialog):
             edt_date.setDate(QDate.currentDate())
         
         arrow_style = """
-            QPushButton { color: #555555; background-color: transparent; border: 1px solid #e0e0e0; border-radius: 4px; padding: 0px; }
-            QPushButton:hover { background-color: #f0f0f0; color: #000; }
+            QPushButton { color: #555555; background-color: transparent; border: 1px solid #e0e4e8; border-radius: 4px; padding: 0px; }
+            QPushButton:hover { background-color: #f0f2f5; color: #000; }
         """
 
-        btn_up = QPushButton("▲"); btn_up.setFixedSize(24, 24)
+        btn_up = QPushButton("▲"); btn_up.setFixedSize(26, 26)
         btn_up.setStyleSheet(arrow_style)
         btn_up.clicked.connect(lambda checked, r=row: self.move_item(r, -1))
         
-        btn_down = QPushButton("▼"); btn_down.setFixedSize(24, 24)
+        btn_down = QPushButton("▼"); btn_down.setFixedSize(26, 26)
         btn_down.setStyleSheet(arrow_style)
         btn_down.clicked.connect(lambda checked, r=row: self.move_item(r, 1))
 
-        btn_del = QPushButton("✕"); btn_del.setFixedSize(28, 28)
+        btn_del = QPushButton("✕"); btn_del.setFixedSize(26, 26)
         btn_del.setStyleSheet("""
-            QPushButton { color: #888888; font-size: 15px; font-weight: bold; border: 1px solid #e0e0e0; background-color: white; border-radius: 4px; }
+            QPushButton { color: #888888; font-size: 13px; font-weight: bold; border: 1px solid #e0e4e8; background-color: white; border-radius: 4px; }
             QPushButton:hover { color: #d32f2f; background-color: #ffebee; border: 1px solid #ef9a9a; }
         """)
         btn_del.clicked.connect(lambda checked, r=row: self.delete_item_row(r))
@@ -564,8 +611,7 @@ class SettingsDialog(QDialog):
             c = dlg.selectedColor()
             if c.isValid():
                 self.data[key] = c.name()
-                # 버튼의 배경색을 선택한 색상으로 동기화
-                btn_widget.setStyleSheet(f"background-color: {c.name()}; border: 1px solid #888; border-radius: 4px;")
+                btn_widget.setStyleSheet(f"background-color: {c.name()}; border: 1px solid #d0d0d0; border-radius: 13px;")
 
     def get_data(self):
         # 1. 일반 설정 데이터
@@ -591,7 +637,10 @@ class SettingsDialog(QDialog):
         # 3. D-Day 목록
         new_items = []
         for row, t, d in self.entries:
-            new_items.append({'title': t.text(), 'date': d.date().toString("yyyy-MM-dd")})
+            if t.text().strip(): # 빈 항목 방지
+                new_items.append({'title': t.text(), 'date': d.date().toString("yyyy-MM-dd")})
+        if not new_items: # 모두 지워졌을 때 기본값
+            new_items.append({'title': "D-Day", 'date': QDate.currentDate().toString("yyyy-MM-dd")})
         self.data['items'] = new_items
         
         return self.data

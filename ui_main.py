@@ -1,11 +1,14 @@
 import os
+import sys
 import calendar
+import webbrowser
+import subprocess
 from datetime import datetime, timedelta
 from PySide6.QtWidgets import (QApplication, QWidget, QLabel, QVBoxLayout, 
                              QHBoxLayout, QMenu, QFrame, QSizeGrip,
                              QSizePolicy, QSystemTrayIcon, QMessageBox, QPushButton, QGridLayout)
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QFont, QIcon, QAction, QPainter, QPainterPath, QColor, QPen
+from PySide6.QtGui import QFont, QIcon, QAction, QPainter, QPainterPath, QColor, QPen, QCursor
 
 # 사용자 정의 모듈 임포트
 from utils import resource_path, calculate_ymd_diff
@@ -24,10 +27,9 @@ class CalendarCell(QLabel):
         self.is_today = False
         self.has_dday = False
         self.setAlignment(Qt.AlignCenter)
-        self.setFont(QFont("Segoe UI", 9))
         self.setMinimumSize(24, 24)
         self.setCursor(Qt.PointingHandCursor)
-        self.setToolTip("우클릭하여 D-Day 추가")
+        self.setToolTip("우클릭하여 메뉴 열기")
 
     def set_data(self, text, date_str, is_today, has_dday, is_current_month, text_color):
         self.setText(text)
@@ -127,7 +129,6 @@ class SFGlassCalendar(QWidget):
         for i, wd in enumerate(weekdays):
             lbl = QLabel(wd)
             lbl.setAlignment(Qt.AlignCenter)
-            lbl.setFont(QFont("Segoe UI", 8, QFont.Bold))
             self.grid_layout.addWidget(lbl, 0, i)
 
         self.cells = []
@@ -140,21 +141,36 @@ class SFGlassCalendar(QWidget):
 
         self.layout.addLayout(self.grid_layout)
 
-    def set_data(self, dday_dates, text_color):
+    def set_style_and_data(self, dday_dates, font_family, font_size, text_color):
+        """달력의 폰트, 크기, 색상, 데이터를 모두 적용"""
         self.dday_set = set(dday_dates)
         self.text_color = text_color
+        
+        # 헤더 폰트 설정 (기본 크기보다 조금 더 크게)
+        header_font = QFont(font_family, font_size + 1, QFont.Bold)
+        self.lbl_month.setFont(header_font)
         self.lbl_month.setStyleSheet(f"color: {text_color}; background: transparent;")
+        
         for btn in (self.btn_prev, self.btn_next):
-            btn.setStyleSheet(f"background: transparent; border: none; color: {text_color};")
+            btn.setStyleSheet(f"background: transparent; border: none; color: {text_color}; font-size: {font_size + 2}px;")
 
+        base_font = QFont(font_family, font_size)
+        bold_font = QFont(font_family, max(8, font_size - 1), QFont.Bold)
+
+        # 요일 라벨 스타일 설정
         for i in range(7):
             lbl = self.grid_layout.itemAtPosition(0, i).widget()
+            lbl.setFont(bold_font)
             if i == 0:
                 lbl.setStyleSheet(f"color: #ff6b6b; background: transparent;")
             elif i == 6:
                 lbl.setStyleSheet(f"color: #6baaff; background: transparent;")
             else:
                 lbl.setStyleSheet(f"color: {text_color}; background: transparent;")
+
+        # 각 셀 폰트 설정
+        for cell in self.cells:
+            cell.setFont(base_font)
 
         self.update_calendar()
 
@@ -296,7 +312,6 @@ class DDayWidget(QWidget):
         # 시계와 달력을 담을 디지털 시계 느낌의 둥근 컨테이너
         self.clock_container = QWidget()
         self.clock_layout = QVBoxLayout(self.clock_container)
-        # [수정] 시계 영역 유리 배경 안쪽 여백 축소 (좌 8, 상 2, 우 8, 하 6)
         self.clock_layout.setContentsMargins(8, 2, 8, 6)
         self.clock_layout.setSpacing(2)
         
@@ -327,7 +342,7 @@ class DDayWidget(QWidget):
         
         # SF 글래스 테마 투명 달력 위젯
         self.calendar = SFGlassCalendar()
-        self.calendar.dateRightClicked.connect(self.open_settings_for_new_dday)
+        self.calendar.dateRightClicked.connect(self.show_calendar_context_menu)
         self.layout.addWidget(self.calendar)
         
         self.layout.addStretch(1)
@@ -347,7 +362,6 @@ class DDayWidget(QWidget):
             child = self.items_layout.takeAt(0)
             if child.widget(): child.widget().deleteLater()
             
-        # [수정] D-Day 항목들 사이의 상하 간격 축소 (4 -> 2)
         self.items_layout.setSpacing(2)
         
         # 투명 화이트 유리 & SF 마우스 오버 효과 (시계 영역)
@@ -387,6 +401,11 @@ class DDayWidget(QWidget):
         color_dday_count = self.data.get('color_dday_count', '#ff6b6b')
         color_dday_date = self.data.get('color_dday_date', '#ffffff')
         
+        # 달력 글꼴 옵션
+        font_calendar_family = self.data.get('font_calendar', 'Segoe UI')
+        size_calendar = self.data.get('size_calendar', 10)
+        color_calendar = self.data.get('color_calendar', '#ffffff')
+        
         self.labels = []
         
         for item in self.data['items']:
@@ -394,7 +413,6 @@ class DDayWidget(QWidget):
             row.setObjectName("ddayRow")
             row_layout = QHBoxLayout(row)
             
-            # 투명 화이트 유리 & SF 마우스 오버 효과 (D-Day 영역)
             row.setStyleSheet("""
                 QWidget#ddayRow {
                     background-color: rgba(255, 255, 255, 0.05);
@@ -407,7 +425,6 @@ class DDayWidget(QWidget):
                 }
                 QLabel { background: transparent; border: none; }
             """)
-            # [수정] D-Day 항목 유리 배경 안쪽 여백 축소 (좌 8, 상 2, 우 8, 하 4)
             row_layout.setContentsMargins(8, 2, 8, 4)
             
             lbl_title = QLabel(item['title'])
@@ -450,7 +467,7 @@ class DDayWidget(QWidget):
         show_calendar = self.data.get('show_calendar', False)
         if show_calendar:
             dday_dates = [item['date'] for item in self.data['items']]
-            self.calendar.set_data(dday_dates, color_date)
+            self.calendar.set_style_and_data(dday_dates, font_calendar_family, size_calendar, color_calendar)
             self.calendar.show()
         else:
             self.calendar.hide()
@@ -464,7 +481,6 @@ class DDayWidget(QWidget):
         now = datetime.now()
         today = now.date()
         
-        # 포맷 설정값 불러오기
         time_format_setting = self.data.get('time_format', '24h')
         day_fmt = self.data.get('day_format', 'kor')
         date_fmt = self.data.get('date_format', 'yyyy-mm-dd')
@@ -475,7 +491,6 @@ class DDayWidget(QWidget):
             hr = now.hour % 12
             if hr == 0: hr = 12
             
-            # AM/PM을 작게 표시하기 위해 HTML 태그 사용 (현재 시간 폰트 크기의 약 25% 크기 적용)
             base_size = self.data.get('size_time', 45)
             small_size = max(10, int(base_size * 0.25))
             self.lbl_time.setText(f"<span style='font-size: {small_size}pt;'>{am_pm_str}</span> {hr:02d}:{now.strftime('%M:%S')}")
@@ -518,7 +533,6 @@ class DDayWidget(QWidget):
                 item['count'].setText(txt)
                 item['count'].setStyleSheet(f"color: {color};")
                 
-                # 유리 메뉴 스타일에 맞춰 날짜와 요일 표시
                 day_item_str = days[target_date.weekday()]
                 if date_fmt == 'mm/dd/yyyy':
                     t_date_str = target_date.strftime('%m/%d/%Y')
@@ -539,11 +553,10 @@ class DDayWidget(QWidget):
             path = QPainterPath()
             path.addRoundedRect(0, 0, self.width(), self.height(), 15, 15)
             
-            # 투명한 화이트 톤 유리 (SF 공상과학 느낌)
+            # 투명한 화이트 톤 유리
             bg_color = QColor(255, 255, 255, 20)
             painter.fillPath(path, bg_color)
             
-            # 외곽 테두리 하이라이트로 빛나는 유리 질감 극대화
             painter.setPen(QColor(255, 255, 255, 60))
             painter.setBrush(Qt.NoBrush)
             painter.drawPath(path)
@@ -571,7 +584,6 @@ class DDayWidget(QWidget):
         action_info = menu.addAction("정보 (About)")
         menu.addSeparator()
         
-        # [추가] 마우스 우클릭 메뉴에서 바로 On/Off 할 수 있는 토글 추가
         bg_is_on = self.data.get('use_glass_background', False)
         cal_is_on = self.data.get('show_calendar', False)
         
@@ -588,12 +600,10 @@ class DDayWidget(QWidget):
         elif action == action_info: 
             self.show_info()
         elif action == action_toggle_bg:
-            # 상태 반전 후 즉시 화면 갱신 및 저장
             self.data['use_glass_background'] = not bg_is_on
             self.refresh_widgets()
             self.save_current_state()
         elif action == action_toggle_cal:
-            # 상태 반전 후 즉시 화면 갱신 및 저장
             self.data['show_calendar'] = not cal_is_on
             self.refresh_widgets()
             self.save_current_state()
@@ -617,8 +627,86 @@ class DDayWidget(QWidget):
         dlg = GlassInfoDialog(self)
         dlg.exec()
 
+    def show_calendar_context_menu(self, date_str):
+        """달력의 특정 날짜를 우클릭했을 때 나타나는 컨텍스트 메뉴"""
+        menu = QMenu(self)
+        menu.setAttribute(Qt.WA_TranslucentBackground)
+        menu.setStyleSheet(glass_theme.get_glass_menu_style())
+        
+        action_add_dday = menu.addAction(f"새 D-Day 추가 ({date_str})")
+        menu.addSeparator()
+        action_google = menu.addAction("구글 캘린더 열기")
+        action_apple = menu.addAction("애플 캘린더 열기")
+        action_outlook = menu.addAction("Outlook 캘린더 열기")
+        
+        action = menu.exec(QCursor.pos())
+        
+        if action == action_add_dday:
+            self.open_settings_for_new_dday(date_str)
+            
+        elif action == action_google:
+            # 구글 캘린더의 경우 선택한 날짜가 바로 열리도록 포맷 변환
+            y, m, d = date_str.split('-')
+            url = f"https://calendar.google.com/calendar/u/0/r/day/{y}/{int(m)}/{int(d)}"
+            webbrowser.open(url)
+            
+        elif action == action_apple:
+            # Mac OS인 경우 로컬 앱 실행 시도, 그 외의 경우 웹 iCloud 캘린더 오픈
+            if sys.platform == 'darwin':
+                try:
+                    subprocess.Popen(['open', '-a', 'Calendar'])
+                except Exception:
+                    webbrowser.open("https://www.icloud.com/calendar/")
+            else:
+                webbrowser.open("https://www.icloud.com/calendar/")
+                
+        elif action == action_outlook:
+            success = False
+            
+            if sys.platform == 'win32':
+                # 1순위: 최신 Outlook (New Outlook 앱)
+                # 프로토콜(ms-outlook:) 또는 윈도우 실행 별칭(olk.exe)으로 호출 시도
+                try:
+                    os.startfile("ms-outlook:")
+                    success = True
+                except Exception:
+                    pass
+                    
+                if not success:
+                    try:
+                        os.startfile("olk.exe")
+                        success = True
+                    except Exception:
+                        pass
+                
+                # 2순위: 365 아웃룩 / 윈도우 기본 캘린더 연동
+                if not success:
+                    try:
+                        os.startfile("outlookcal:")
+                        success = True
+                    except Exception:
+                        pass
+                        
+                # 3순위: 오피스 아웃룩 (클래식 데스크톱 앱)
+                if not success:
+                    try:
+                        os.startfile("outlook:")
+                        success = True
+                    except Exception:
+                        pass
+                        
+            elif sys.platform == 'darwin':
+                try:
+                    subprocess.Popen(['open', '-a', 'Microsoft Outlook'])
+                    success = True
+                except Exception:
+                    pass
+            
+            # 위 모든 시도가 실패하거나 지원하지 않는 환경일 경우 웹으로 오픈 (Fallback)
+            if not success:
+                webbrowser.open("https://outlook.live.com/calendar/")
+
     def open_settings_for_new_dday(self, date_str):
-        """달력에서 우클릭 시 특정 날짜로 새 D-Day를 추가하는 설정창 열기"""
         self.data['x'] = self.x()
         self.data['y'] = self.y()
         self.data['w'] = self.width()
@@ -626,7 +714,6 @@ class DDayWidget(QWidget):
         
         dlg = SettingsDialog(self.data, self)
         
-        # 설정 창의 탭을 2번(D-Day 관리 탭)으로 자동 전환 후 항목 추가
         if hasattr(dlg, 'tabs'):
             dlg.tabs.setCurrentIndex(2)
         dlg.add_item_row("새 D-Day", date_str)
@@ -638,7 +725,6 @@ class DDayWidget(QWidget):
             self.save_current_state()
 
     def open_settings(self, checked=False):
-        # 현재 화면 상태(위치, 크기)를 data에 반영 후 설정 창 오픈
         self.data['x'] = self.x()
         self.data['y'] = self.y()
         self.data['w'] = self.width()
@@ -646,7 +732,6 @@ class DDayWidget(QWidget):
         
         dlg = SettingsDialog(self.data, self)
         if dlg.exec():
-            # 변경된 데이터 받아오기
             self.data = dlg.get_data()
             self.apply_window_settings()
             self.refresh_widgets()

@@ -1,161 +1,206 @@
 from PySide6.QtGui import QColor, QBrush
 
-# ---------------------------------------------------------
-# Prism Dock Style Identity
-# ---------------------------------------------------------
-# 배경색: 순수 화이트 (더 깨끗한 유리 느낌)
-GLASS_COLOR_RGB = (255, 255, 255)
-# 투명도: 이미지처럼 내용이 잘 보이도록 약간 불투명하게 (0~255)
-DIALOG_ALPHA = 230 
-MENU_ALPHA = 230
+# 모던하고 세련된 테마 (밝은 계열의 블러 글래스 느낌)
+GLASS_COLOR_RGB = (250, 250, 252)
+DIALOG_ALPHA = 245 
+MENU_ALPHA = 240
 
-# 포인트 컬러 (이미지의 파란색)
-ACCENT_COLOR = "#0078D7"
-# 텍스트 컬러
-TEXT_COLOR = "#202020"
+ACCENT_COLOR = "#006cd9" # 세련된 블루 포인트
+TEXT_COLOR = "#202124"
+BORDER_COLOR = "#e0e4e8"
 
 def get_glass_background_brush():
-    """다이얼로그 배경 페인팅을 위한 브러시 반환"""
     return QBrush(QColor(*GLASS_COLOR_RGB, DIALOG_ALPHA))
 
 def get_glass_menu_style():
-    """우클릭 메뉴용 스타일시트"""
     return f"""
         QMenu {{
             background-color: rgba({GLASS_COLOR_RGB[0]}, {GLASS_COLOR_RGB[1]}, {GLASS_COLOR_RGB[2]}, {MENU_ALPHA});
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            padding: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+            padding: 6px;
         }}
         QMenu::item {{
             color: {TEXT_COLOR};
             background-color: transparent;
-            padding: 6px 12px;
-            margin: 2px;
+            padding: 8px 16px;
+            margin: 2px 4px;
             border-radius: 6px;
-            font-family: 'Segoe UI';
+            font-family: 'Segoe UI', sans-serif;
             font-size: 10pt;
         }}
         QMenu::item:selected {{
-            background-color: {ACCENT_COLOR}; /* 선택 시 파란색 */
-            color: #ffffff; /* 텍스트는 흰색 */
+            background-color: {ACCENT_COLOR};
+            color: #ffffff;
         }}
         QMenu::separator {{
             height: 1px;
-            background: rgba(0, 0, 0, 0.1);
+            background: rgba(0, 0, 0, 0.06);
             margin: 4px 8px;
         }}
     """
 
 def get_glass_dialog_style():
-    """설정창 및 공통 위젯용 스타일시트 (Prism Dock 스타일)"""
     return f"""
         QDialog, QWidget {{
             background: transparent;
-            font-family: 'Segoe UI';
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
             color: {TEXT_COLOR};
         }}
         
-        /* 라벨 & 체크박스 */
         QLabel, QCheckBox {{
             color: {TEXT_COLOR};
             font-size: 10pt;
-            font-weight: 500;
         }}
+        
         QCheckBox::indicator {{
             width: 18px;
             height: 18px;
             border-radius: 4px;
-            border: 1px solid #bbb;
+            border: 1px solid #c0c4c8;
             background: white;
         }}
         QCheckBox::indicator:checked {{
             background-color: {ACCENT_COLOR};
             border: 1px solid {ACCENT_COLOR};
-            image: url(none); /* 체크 아이콘 대신 색상으로 표현하거나 커스텀 가능 */
+            image: url(none); 
         }}
 
-        /* 2. 슬라이더 (세로 두께 축소 및 입체감 조절) */
+        /* 슬라이더 모던화 */
         QSlider::groove:horizontal {{
-            border: 1px solid #b0b0b0;
-            height: 4px; /* 기존 8px에서 4px로 축소 */
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #dcdcdc, stop:1 #f8f8f8);
+            border: none;
+            height: 6px; 
+            background: #e1e4e8;
             margin: 2px 0;
-            border-radius: 2px;
-        }}
-        QSlider::handle:horizontal {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #e0e0e0);
-            border: 1px solid #888888;
-            width: 14px;
-            height: 14px;
-            margin: -5px 0; /* 슬라이더 바 중앙에 위치하도록 여백 조정 */
-            border-radius: 7px;
-        }}
-        QSlider::handle:horizontal:hover {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #f0f0f0);
-            border: 1px solid #555555;
+            border-radius: 3px;
         }}
         QSlider::sub-page:horizontal {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4ba3e3, stop:1 {ACCENT_COLOR});
-            border: 1px solid #005a9e;
-            border-radius: 2px;
+            background: {ACCENT_COLOR};
+            border-radius: 3px;
+        }}
+        QSlider::handle:horizontal {{
+            background: #ffffff;
+            border: 1px solid #c0c4c8;
+            width: 16px;
+            height: 16px;
+            margin: -5px 0; 
+            border-radius: 8px;
+        }}
+        QSlider::handle:horizontal:hover {{
+            background: #f8f9fa;
+            border: 1px solid {ACCENT_COLOR};
         }}
 
-        /* 1 & 5. 버튼 스타일 (입체감 추가 및 X버튼 잘림 방지를 위한 패딩 최적화) */
+        /* 버튼 스타일 세련되게 */
         QPushButton {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ffffff, stop:1 #f0f0f0);
-            border: 1px solid #cccccc;
-            border-bottom: 2px solid #b0b0b0; /* 입체감을 위한 하단 테두리 */
+            background-color: #ffffff;
+            border: 1px solid {BORDER_COLOR};
             border-radius: 6px;
-            padding: 4px 8px; /* X버튼 잘림 현상 방지를 위해 좌우 패딩을 8px로 줄임 */
+            padding: 5px 8px;
             color: {TEXT_COLOR};
             font-size: 10pt;
         }}
         QPushButton:hover {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f8f9fa, stop:1 #e8e8e8);
-            border-bottom: 2px solid #909090; /* 호버 시 약간 눌린 느낌 */
+            background-color: #f4f6f8;
+            border-color: #c0c4c8;
         }}
         QPushButton:pressed {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #e0e0e0, stop:1 #f0f0f0);
-            border-top: 2px solid #b0b0b0; /* 눌렸을 때 음각 효과 */
-            border-bottom: 1px solid #cccccc;
-            padding-top: 6px; 
-            padding-left: 10px;
+            background-color: #eef1f4;
         }}
         
-        /* 입력창 & 콤보박스 (흰색 배경, 둥근 모서리) */
-        QLineEdit, QComboBox, QSpinBox, QDateEdit {{
+        /* 입력창 & 콤보박스 (스핀박스 제외) */
+        QLineEdit, QComboBox, QDateEdit {{
             background-color: #ffffff;
-            border: 1px solid #dcdcdc;
+            border: 1px solid {BORDER_COLOR};
             border-radius: 6px;
             padding: 4px 8px;
             color: {TEXT_COLOR};
             selection-background-color: {ACCENT_COLOR};
             selection-color: white;
-            min-height: 22px;
-        }}
-        QDateEdit {{
-            min-width: 105px; /* 날짜 잘림 현상 방지를 위해 여유 너비 확보 */
+            min-height: 24px;
         }}
         
-        /* 3. 콤보박스 및 날짜입력창 역삼각형 가시성 문제 해결 */
+        /* 스핀박스 (텍스트 영역이 화살표를 침범하지 않도록 우측 패딩 추가 및 명시적 컨트롤 설정) */
+        QSpinBox {{
+            background-color: #ffffff;
+            border: 1px solid {BORDER_COLOR};
+            border-radius: 6px;
+            padding: 4px 24px 4px 8px; 
+            color: {TEXT_COLOR};
+            selection-background-color: {ACCENT_COLOR};
+            selection-color: white;
+            min-height: 24px;
+            max-width: 70px; 
+        }}
+        
+        QSpinBox::up-button {{
+            subcontrol-origin: border;
+            subcontrol-position: top right;
+            width: 22px;
+            border-left: 1px solid {BORDER_COLOR};
+            border-bottom: 1px solid {BORDER_COLOR};
+            border-top-right-radius: 6px;
+            background-color: transparent;
+        }}
+        QSpinBox::up-button:hover {{ background-color: #f4f6f8; }}
+        
+        QSpinBox::down-button {{
+            subcontrol-origin: border;
+            subcontrol-position: bottom right;
+            width: 22px;
+            border-left: 1px solid {BORDER_COLOR};
+            border-bottom-right-radius: 6px;
+            background-color: transparent;
+        }}
+        QSpinBox::down-button:hover {{ background-color: #f4f6f8; }}
+        
+        QSpinBox::up-arrow, QSpinBox::down-arrow {{
+            image: none;
+        }}
+        
+        /* 날짜 입력창이 잘리지 않도록 최소 너비 추가 */
+        QDateEdit {{
+            min-width: 110px;
+        }}
+        
         QComboBox::drop-down, QDateEdit::drop-down {{
             subcontrol-origin: padding;
             subcontrol-position: top right;
-            width: 22px;
-            border-left: 1px solid #dcdcdc;
+            width: 24px;
+            border: none;
             background-color: transparent;
-            border-top-right-radius: 5px;
-            border-bottom-right-radius: 5px;
-        }}
-        QComboBox::down-arrow, QDateEdit::down-arrow {{
-            /* 안전한 렌더링을 위해 Base64로 인코딩된 SVG 적용 */
-            image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxMicgaGVpZ2h0PScxMicgdmlld0JveD0nMCAwIDI0IDI0JyBmaWxsPSdub25lJyBzdHJva2U9JyM1NTU1NTUnIHN0cm9rZS13aWR0aD0nMycgc3Ryb2tlLWxpbmVjYXA9J3JvdW5kJyBzdHJva2UtbGluZWpvaW49J3JvdW5kJz48cG9seWxpbmUgcG9pbnRzPSc2IDkgMTIgMTUgMTggOSc+PC9wb2x5bGluZT48L3N2Zz4=");
-            width: 12px;
-            height: 12px;
         }}
 
-        /* 스크롤바 (미니멀) */
+        /* 탭 모던 스타일 */
+        QTabWidget::pane {{
+            border: 1px solid {BORDER_COLOR};
+            background: #ffffff;
+            border-radius: 8px;
+            border-top-left-radius: 0px;
+            margin-top: -1px;
+        }}
+        QTabBar::tab {{
+            background: #f8f9fa;
+            border: 1px solid transparent;
+            border-bottom: 1px solid {BORDER_COLOR};
+            padding: 8px 18px;
+            margin-right: 2px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            color: #606770;
+            font-weight: 600;
+        }}
+        QTabBar::tab:selected {{
+            background: #ffffff;
+            border: 1px solid {BORDER_COLOR};
+            border-bottom: 1px solid #ffffff;
+            color: {ACCENT_COLOR};
+        }}
+        QTabBar::tab:hover:!selected {{ 
+            background: #f0f2f5; 
+            color: #30353a;
+        }}
+
         QScrollBar:vertical {{
             border: none;
             background: transparent;
@@ -163,49 +208,39 @@ def get_glass_dialog_style():
             margin: 0px;
         }}
         QScrollBar::handle:vertical {{
-            background: #d0d0d0;
+            background: #c0c4c8;
             min-height: 20px;
             border-radius: 4px;
         }}
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-            height: 0px;
-        }}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0px; }}
         
-        /* 그룹박스 및 라인 */
-        QFrame[frameShape="4"] {{ /* HLine */
-            color: #e0e0e0; 
-        }}
+        QFrame[frameShape="4"] {{ color: #eaedf0; }}
     """
 
 def get_calendar_style():
-    """4. 캘린더 위젯용 스타일시트 (날짜 가려짐 현상 및 다크모드 충돌 해결)"""
     return f"""
         QCalendarWidget QWidget#qt_calendar_navigationbar {{
-            background-color: #f0f0f0;
-            border-bottom: 1px solid #dcdcdc;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid {BORDER_COLOR};
         }}
         QCalendarWidget QTableView {{
             background-color: #ffffff;
             selection-background-color: {ACCENT_COLOR};
             selection-color: white;
-            alternate-background-color: #f9f9f9;
-            gridline-color: #eeeeee;
+            alternate-background-color: #fafbfc;
+            gridline-color: #f0f2f5;
         }}
         QCalendarWidget QToolButton {{
             color: {TEXT_COLOR};
             background-color: transparent;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 4px;
         }}
         QCalendarWidget QToolButton:hover {{
-            background-color: #e0e0e0;
+            background-color: #eaedf0;
         }}
-        QCalendarWidget QMenu {{
-            background-color: #ffffff;
-            color: {TEXT_COLOR};
-        }}
-        QCalendarWidget QSpinBox {{
+        QCalendarWidget QMenu, QCalendarWidget QSpinBox {{
             background-color: #ffffff;
             color: {TEXT_COLOR};
         }}
@@ -214,8 +249,5 @@ def get_calendar_style():
             color: {TEXT_COLOR};
             selection-background-color: {ACCENT_COLOR};
             selection-color: white;
-        }}
-        QCalendarWidget QAbstractItemView:disabled {{
-            color: #a0a0a0;
         }}
     """

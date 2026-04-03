@@ -3,10 +3,9 @@ import os
 import copy
 from datetime import datetime
 
-# 기존 'dday_config_pyside.ini'에서 'dday_config.ini'로 파일명 변경
 CONFIG_FILE = 'dday_config.ini'
 
-# 기본 설정값 정의 (버전 2.0: 5가지 요소 세분화 및 탭 스타일)
+# 달력 설정(font_calendar, size_calendar, color_calendar)을 포함한 기본 데이터
 DEFAULT_DATA = {
     'x': 100, 'y': 100, 'w': 350, 'h': 250, 
     'items': [{"title": "D-Day", "date": datetime.now().strftime("%Y-%m-%d")}],
@@ -24,6 +23,7 @@ DEFAULT_DATA = {
     'color_dday_title': '#ffffff',
     'color_dday_count': '#ff6b6b',
     'color_dday_date': '#aaaaaa',
+    'color_calendar': '#ffffff',
     
     # [디테일 설정] 글꼴
     'font_time': 'Segoe UI',
@@ -31,6 +31,7 @@ DEFAULT_DATA = {
     'font_dday_title': 'Segoe UI',
     'font_dday_count': 'Segoe UI',
     'font_dday_date': 'Segoe UI',
+    'font_calendar': 'Segoe UI',
     
     # [디테일 설정] 크기
     'size_time': 45,
@@ -38,6 +39,7 @@ DEFAULT_DATA = {
     'size_dday_title': 12,
     'size_dday_count': 15,
     'size_dday_date': 8,
+    'size_calendar': 10,
 }
 
 class ConfigManager:
@@ -48,7 +50,7 @@ class ConfigManager:
         """설정 파일에서 데이터를 읽어옵니다."""
         config = configparser.ConfigParser()
         data = copy.deepcopy(DEFAULT_DATA)
-        data['items'] = [] # 아이템은 파일에서 다시 채우기 위해 초기화
+        data['items'] = [] 
         
         if os.path.exists(self.config_file):
             try:
@@ -67,35 +69,29 @@ class ConfigManager:
                     data['date_format'] = config.get('Window', 'date_format', fallback=DEFAULT_DATA['date_format'])
                     data['day_format'] = config.get('Window', 'day_format', fallback=DEFAULT_DATA['day_format'])
 
-                    # 기존의 단일 글꼴/크기 설정을 불러오는 하위 호환성 유지 로직
-                    old_text_color = config.get('Window', 'text_color', fallback='#ffffff')
-                    old_count_color = config.get('Window', 'count_color', fallback='#ff6b6b')
-                    old_font = config.get('Window', 'font_family', fallback=None)
-                    old_time_font = config.get('Window', 'time_font_family', fallback=old_font if old_font else 'Segoe UI')
-                    old_dday_font = config.get('Window', 'dday_font_family', fallback=old_font if old_font else 'Segoe UI')
-                    old_time_size = config.getint('Window', 'time_size', fallback=45)
-                    old_date_size = config.getint('Window', 'date_size', fallback=12)
-
-                    # [디테일 설정] 색상
-                    data['color_time'] = config.get('Window', 'color_time', fallback=old_text_color)
-                    data['color_date'] = config.get('Window', 'color_date', fallback=old_text_color)
-                    data['color_dday_title'] = config.get('Window', 'color_dday_title', fallback=old_text_color)
-                    data['color_dday_count'] = config.get('Window', 'color_dday_count', fallback=old_count_color)
-                    data['color_dday_date'] = config.get('Window', 'color_dday_date', fallback=old_text_color)
+                    # 색상
+                    data['color_time'] = config.get('Window', 'color_time', fallback=DEFAULT_DATA['color_time'])
+                    data['color_date'] = config.get('Window', 'color_date', fallback=DEFAULT_DATA['color_date'])
+                    data['color_dday_title'] = config.get('Window', 'color_dday_title', fallback=DEFAULT_DATA['color_dday_title'])
+                    data['color_dday_count'] = config.get('Window', 'color_dday_count', fallback=DEFAULT_DATA['color_dday_count'])
+                    data['color_dday_date'] = config.get('Window', 'color_dday_date', fallback=DEFAULT_DATA['color_dday_date'])
+                    data['color_calendar'] = config.get('Window', 'color_calendar', fallback=DEFAULT_DATA['color_calendar'])
                     
-                    # [디테일 설정] 글꼴
-                    data['font_time'] = config.get('Window', 'font_time', fallback=old_time_font)
-                    data['font_date'] = config.get('Window', 'font_date', fallback=old_time_font)
-                    data['font_dday_title'] = config.get('Window', 'font_dday_title', fallback=old_dday_font)
-                    data['font_dday_count'] = config.get('Window', 'font_dday_count', fallback=old_dday_font)
-                    data['font_dday_date'] = config.get('Window', 'font_dday_date', fallback=old_dday_font)
+                    # 글꼴
+                    data['font_time'] = config.get('Window', 'font_time', fallback=DEFAULT_DATA['font_time'])
+                    data['font_date'] = config.get('Window', 'font_date', fallback=DEFAULT_DATA['font_date'])
+                    data['font_dday_title'] = config.get('Window', 'font_dday_title', fallback=DEFAULT_DATA['font_dday_title'])
+                    data['font_dday_count'] = config.get('Window', 'font_dday_count', fallback=DEFAULT_DATA['font_dday_count'])
+                    data['font_dday_date'] = config.get('Window', 'font_dday_date', fallback=DEFAULT_DATA['font_dday_date'])
+                    data['font_calendar'] = config.get('Window', 'font_calendar', fallback=DEFAULT_DATA['font_calendar'])
 
-                    # [디테일 설정] 크기
-                    data['size_time'] = config.getint('Window', 'size_time', fallback=old_time_size)
-                    data['size_date'] = config.getint('Window', 'size_date', fallback=old_date_size)
-                    data['size_dday_title'] = config.getint('Window', 'size_dday_title', fallback=12)
-                    data['size_dday_count'] = config.getint('Window', 'size_dday_count', fallback=15)
-                    data['size_dday_date'] = config.getint('Window', 'size_dday_date', fallback=8)
+                    # 크기
+                    data['size_time'] = config.getint('Window', 'size_time', fallback=DEFAULT_DATA['size_time'])
+                    data['size_date'] = config.getint('Window', 'size_date', fallback=DEFAULT_DATA['size_date'])
+                    data['size_dday_title'] = config.getint('Window', 'size_dday_title', fallback=DEFAULT_DATA['size_dday_title'])
+                    data['size_dday_count'] = config.getint('Window', 'size_dday_count', fallback=DEFAULT_DATA['size_dday_count'])
+                    data['size_dday_date'] = config.getint('Window', 'size_dday_date', fallback=DEFAULT_DATA['size_dday_date'])
+                    data['size_calendar'] = config.getint('Window', 'size_calendar', fallback=DEFAULT_DATA['size_calendar'])
                 
                 sections = [s for s in config.sections() if s.startswith('DDay-')]
                 sections.sort(key=lambda x: int(x.split('-')[1]))
@@ -128,26 +124,29 @@ class ConfigManager:
             'date_format': data['date_format'],
             'day_format': data['day_format'],
             
-            # [디테일 설정] 색상
+            # 색상
             'color_time': data['color_time'],
             'color_date': data['color_date'],
             'color_dday_title': data['color_dday_title'],
             'color_dday_count': data['color_dday_count'],
             'color_dday_date': data['color_dday_date'],
+            'color_calendar': data['color_calendar'],
             
-            # [디테일 설정] 글꼴
+            # 글꼴
             'font_time': data['font_time'],
             'font_date': data['font_date'],
             'font_dday_title': data['font_dday_title'],
             'font_dday_count': data['font_dday_count'],
             'font_dday_date': data['font_dday_date'],
+            'font_calendar': data['font_calendar'],
             
-            # [디테일 설정] 크기
+            # 크기
             'size_time': str(data['size_time']),
             'size_date': str(data['size_date']),
             'size_dday_title': str(data['size_dday_title']),
             'size_dday_count': str(data['size_dday_count']),
-            'size_dday_date': str(data['size_dday_date'])
+            'size_dday_date': str(data['size_dday_date']),
+            'size_calendar': str(data['size_calendar'])
         }
         
         for i, item in enumerate(data['items']):
