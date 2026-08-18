@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QTimer, Signal, QRect
 from PySide6.QtGui import QFont, QIcon, QAction, QPainter, QPainterPath, QColor, QPen, QCursor
 
 # 사용자 정의 모듈 임포트
-from utils import resource_path, should_relocate_widget
+from utils import resource_path
 from config_manager import ConfigManager
 from startup_manager import StartupManager
 from ui_settings import SettingsDialog, GlassInfoDialog
@@ -51,13 +51,6 @@ def _format_date(value, date_format):
     if date_format == 'dd/mm/yyyy':
         return value.strftime('%d/%m/%Y')
     return value.strftime('%Y-%m-%d')
-
-
-def _screen_rects(screens):
-    return [
-        (rect.x(), rect.y(), rect.width(), rect.height())
-        for rect in (screen.availableGeometry() for screen in screens)
-    ]
 
 
 def _centered_geometry(source_rect, screen):
@@ -323,9 +316,6 @@ class DDayWidget(QWidget):
         self.timer.timeout.connect(self.update_counts)
         self.timer.start(1000)
 
-        # 실행 중 모니터가 분리되거나 주 모니터가 바뀌는 상황을 감시합니다.
-        self.init_screen_monitoring()
-
     def init_tray_icon(self):
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(self.app_icon)
@@ -337,6 +327,10 @@ class DDayWidget(QWidget):
         action_show = QAction("보이기/숨기기", self)
         action_show.triggered.connect(self.toggle_visibility)
         tray_menu.addAction(action_show)
+
+        action_move_primary = QAction("주 모니터로 가져오기", self)
+        action_move_primary.triggered.connect(self.move_to_primary_screen)
+        tray_menu.addAction(action_move_primary)
 
         action_settings = QAction("설정", self)
         action_settings.triggered.connect(self.open_settings)
@@ -365,6 +359,31 @@ class DDayWidget(QWidget):
         else:
             self.show()
             self.activateWindow()
+
+    def move_to_primary_screen(self, checked=False):
+        """사용자 요청이 있을 때만 위젯을 주 모니터 중앙으로 옮깁니다."""
+        screens = QApplication.screens()
+        if not screens:
+            return
+
+        primary_screen = QApplication.primaryScreen() or screens[0]
+        target = _centered_geometry(self.frameGeometry(), primary_screen)
+        self.setGeometry(target)
+        self.data['x'], self.data['y'] = target.x(), target.y()
+        self.data['w'], self.data['h'] = target.width(), target.height()
+
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+        result = self.save_current_state(user_initiated=True)
+        if result.success and hasattr(self, 'tray_icon'):
+            self.tray_icon.showMessage(
+                "위젯 위치 복구",
+                "위젯을 주 모니터 중앙으로 옮겼습니다.",
+                QSystemTrayIcon.Information,
+                4000,
+            )
 
     def quit_application(self, checked=False):
         self._quitting = True
@@ -422,63 +441,10 @@ class DDayWidget(QWidget):
                 "기존 파일은 보호되며 자동으로 덮어쓰지 않습니다."
             )
 
-    def init_screen_monitoring(self):
-        """화면 구성 변경 신호를 짧게 모아 한 번만 위치를 검사합니다."""
-        self.screen_change_timer = QTimer(self)
-        self.screen_change_timer.setSingleShot(True)
-        self.screen_change_timer.setInterval(400)
-        self.screen_change_timer.timeout.connect(self.ensure_widget_on_available_screen)
-
-        app = QApplication.instance()
-        app.screenRemoved.connect(self.schedule_screen_position_check)
-        app.screenAdded.connect(self.schedule_screen_position_check)
-        app.primaryScreenChanged.connect(self.schedule_screen_position_check)
-
-    def schedule_screen_position_check(self, *args):
-        """Windows의 화면 좌표 갱신이 끝난 뒤 검사하도록 타이머를 재시작합니다."""
-        self.screen_change_timer.start()
-
-    def ensure_widget_on_available_screen(self):
-        """위젯 중심이 모든 화면에서 벗어나면 주 모니터 중앙으로 이동합니다."""
-        screens = QApplication.screens()
-        if not screens:
-            return
-
-        widget_rect = self.frameGeometry()
-        if not should_relocate_widget(
-            (widget_rect.x(), widget_rect.y(), widget_rect.width(), widget_rect.height()),
-            _screen_rects(screens),
-        ):
-            return
-
-        primary_screen = QApplication.primaryScreen() or screens[0]
-        target = _centered_geometry(widget_rect, primary_screen)
-        self.setGeometry(target)
-
-        self.data['x'], self.data['y'] = target.x(), target.y()
-        self.data['w'], self.data['h'] = target.width(), target.height()
-        self.save_current_state(user_initiated=False)
-
-        if hasattr(self, 'tray_icon'):
-            self.tray_icon.showMessage(
-                "위젯 위치 복구",
-                "사용 중이던 화면이 연결 해제되어 위젯을 주 모니터로 옮겼습니다.",
-                QSystemTrayIcon.Information, 5000
-            )
-
     def apply_window_settings(self):
         geometry = QRect(
             self.data['x'], self.data['y'], self.data['w'], self.data['h']
         )
-        screens = QApplication.screens()
-        if screens and should_relocate_widget(
-            (geometry.x(), geometry.y(), geometry.width(), geometry.height()),
-            _screen_rects(screens),
-        ):
-            primary_screen = QApplication.primaryScreen() or screens[0]
-            geometry = _centered_geometry(geometry, primary_screen)
-            self.data['x'], self.data['y'] = geometry.x(), geometry.y()
-            self.data['w'], self.data['h'] = geometry.width(), geometry.height()
         self.setGeometry(geometry)
         self.setWindowOpacity(self.data['alpha'])
 

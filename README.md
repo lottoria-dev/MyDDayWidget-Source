@@ -1,7 +1,7 @@
 # 🗓️ My D-Day Widget
 바탕화면에서 간편하게 중요한 일정을 관리할 수 있는 데스크톱 D-Day 위젯입니다.
 
-현재 배포 버전은 **v2.6.0**입니다. 프로그램은 무료로 사용할 수 있으며, 소스 코드는 검토와 개인적 개선을 위해 공개하는 **source-available freeware**입니다.
+현재 배포 버전은 **v2.6.1**입니다. 프로그램은 무료로 사용할 수 있으며, 소스 코드는 검토와 개인적 개선을 위해 공개하는 **source-available freeware**입니다.
 
 - 공식 안내: https://mathtime.kr/?page=dday
 - GitHub 저장소: https://github.com/lottoria-dev/MyDDayWidget-Source
@@ -20,8 +20,12 @@
    - 프레임 없는(Frameless) 창으로 자유로운 드래그 이동 및 크기 조절
    - 시스템 트레이(System Tray) 아이콘을 통한 백그라운드 제어
    - INI 설정 파일 불러오기·내보내기 및 최근 백업 복원
-   - 실행 중 보조 모니터가 분리되면 위젯을 주 모니터 중앙으로 자동 이동
+   - 보조 모니터 좌표를 그대로 유지하고, 필요할 때 트레이 메뉴에서 주 모니터로 수동 복구
    - 포터블 EXE의 Windows 시작 시 자동 실행 및 이동 후 경로 자동 복구
+- 안정성 개선(v2.6.1)
+   - 부팅·절전 복귀 때 보조 모니터의 늦은 인식을 분리로 오판하던 자동 위치 이동 제거
+   - 트레이 메뉴의 `주 모니터로 가져오기`를 실행할 때만 위치를 주 모니터 중앙으로 이동하고 저장
+   - Windows 다크모드와 무관하게 메시지·파일 선택 대화창을 밝은 고정 배경으로 표시
 - 완성도 높은 설정 화면(v2.6.0)
    - D-Day 관리를 첫 번째 탭에 배치
    - D-Day 관리·표시 설정·글꼴·색상의 명확한 정보 구조
@@ -59,7 +63,7 @@
 python -m venv .venv
 .venv\Scripts\activate
 
-# 2. v2.6.0 검증 버전 설치
+# 2. v2.6.1 검증 버전 설치
 python -m pip install PySide6==6.10.2 PyInstaller==6.17.0 Pillow
 
 # 3. 아이콘 생성 (최초 1회)
@@ -77,6 +81,7 @@ Windows EXE는 `build.bat`으로 생성합니다. 프로젝트 경로에 공백,
 - 설정 열기: 위젯을 더블 클릭하거나, 우클릭 메뉴에서 설정 편집을 선택합니다.
 - 설정 파일 관리: 환경 설정 하단에서 INI 불러오기·내보내기·최근 백업 복원을 사용할 수 있습니다.
 - 숨기기/종료: 작업 표시줄 우측 하단의 시스템 트레이 아이콘을 우클릭하여 제어할 수 있습니다.
+- 위치 복구: 위젯이 보이지 않을 때 트레이 아이콘을 우클릭하고 `주 모니터로 가져오기`를 선택합니다.
 - 자동 실행: 배포 EXE에서 `표시 설정 > Windows 시작 시 자동 실행`을 선택합니다.
 
 ## 🧳 포터블 자동 실행
@@ -134,7 +139,7 @@ python -m unittest discover -s tests -v
 ├── glass_theme.py       # 글래스 테마 스타일시트(CSS) 및 렌더링 설정
 ├── config_manager.py    # dday_config.ini 파일 저장 및 로드 관리
 ├── startup_manager.py   # 포터블 EXE 시작 프로그램 등록 및 경로 복구
-├── utils.py             # 날짜 계산 및 리소스 경로 관리 유틸리티
+├── utils.py             # 개발·배포 환경의 리소스 경로 관리 유틸리티
 ├── icongen.py           # 앱 아이콘(.ico, .png) 생성 스크립트
 ├── build.bat            # PyInstaller 기반 Windows EXE 자동 빌드 스크립트
 └── CODE_REVIEW.md       # v2.6.0 정적 검토·최적화 결과
@@ -162,7 +167,7 @@ PySide6, Qt, Python, PyInstaller와 Pillow에는 각각의 원 라이선스가 �
 
 ## 개발자 정보
 - 개발일: 2026.01.21
-- 최근 업데이트: 2026.08.16
+- 최근 업데이트: 2026.08.18
 - 공식 배포 페이지: https://mathtime.kr/?page=dday
 - GitHub: https://github.com/lottoria-dev/MyDDayWidget-Source
 - 문의: mathtime.ai@gmail.com

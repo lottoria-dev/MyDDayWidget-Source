@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from PySide6.QtGui import QColor, QBrush
+from PySide6.QtGui import QColor, QBrush, QPalette
 
 # 모던하고 세련된 테마 (밝은 계열의 블러 글래스 느낌)
 GLASS_COLOR_RGB = (250, 250, 252)
@@ -10,6 +10,74 @@ MENU_ALPHA = 240
 ACCENT_COLOR = "#006cd9" # 세련된 블루 포인트
 TEXT_COLOR = "#202124"
 BORDER_COLOR = "#e0e4e8"
+
+
+def configure_application_theme(app):
+    """시스템 다크모드와 무관한 밝은 Qt 대화창 팔레트를 적용합니다."""
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor("#fafafc"))
+    palette.setColor(QPalette.WindowText, QColor(TEXT_COLOR))
+    palette.setColor(QPalette.Base, QColor("#ffffff"))
+    palette.setColor(QPalette.AlternateBase, QColor("#f4f6f8"))
+    palette.setColor(QPalette.ToolTipBase, QColor("#ffffff"))
+    palette.setColor(QPalette.ToolTipText, QColor(TEXT_COLOR))
+    palette.setColor(QPalette.Text, QColor(TEXT_COLOR))
+    palette.setColor(QPalette.Button, QColor("#ffffff"))
+    palette.setColor(QPalette.ButtonText, QColor(TEXT_COLOR))
+    palette.setColor(QPalette.BrightText, QColor("#ffffff"))
+    palette.setColor(QPalette.Highlight, QColor(ACCENT_COLOR))
+    palette.setColor(QPalette.HighlightedText, QColor("#ffffff"))
+    palette.setColor(QPalette.Link, QColor(ACCENT_COLOR))
+    palette.setColor(QPalette.PlaceholderText, QColor("#777f89"))
+    palette.setColor(QPalette.Disabled, QPalette.WindowText, QColor("#8a9199"))
+    palette.setColor(QPalette.Disabled, QPalette.Text, QColor("#8a9199"))
+    palette.setColor(QPalette.Disabled, QPalette.ButtonText, QColor("#8a9199"))
+    app.setPalette(palette)
+    app.setStyleSheet(get_popup_dialog_style())
+
+
+@lru_cache(maxsize=1)
+def get_popup_dialog_style():
+    return f"""
+        QMessageBox, QFileDialog {{
+            background-color: #fafafc;
+            color: {TEXT_COLOR};
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+        }}
+        QMessageBox QWidget, QFileDialog QWidget {{
+            background-color: #fafafc;
+            color: {TEXT_COLOR};
+        }}
+        QMessageBox QLabel, QFileDialog QLabel {{
+            background-color: transparent;
+            color: {TEXT_COLOR};
+        }}
+        QMessageBox QPushButton, QFileDialog QPushButton {{
+            min-width: 72px;
+            padding: 6px 12px;
+            color: {TEXT_COLOR};
+            background-color: #ffffff;
+            border: 1px solid {BORDER_COLOR};
+            border-radius: 6px;
+        }}
+        QMessageBox QPushButton:hover, QFileDialog QPushButton:hover {{
+            background-color: #edf5ff;
+            border-color: #9fc8ef;
+        }}
+        QFileDialog QLineEdit, QFileDialog QComboBox,
+        QFileDialog QListView, QFileDialog QTreeView {{
+            color: {TEXT_COLOR};
+            background-color: #ffffff;
+            border: 1px solid {BORDER_COLOR};
+            selection-background-color: {ACCENT_COLOR};
+            selection-color: #ffffff;
+        }}
+        QFileDialog QHeaderView::section {{
+            color: {TEXT_COLOR};
+            background-color: #f2f4f6;
+            border: 1px solid {BORDER_COLOR};
+        }}
+    """
 
 def get_glass_background_brush():
     return QBrush(QColor(*GLASS_COLOR_RGB, DIALOG_ALPHA))
@@ -315,7 +383,7 @@ def get_glass_dialog_style():
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: transparent; }}
 
         QFrame[frameShape="4"] {{ color: #eaedf0; }}
-    """
+    """ + get_popup_dialog_style()
 
 @lru_cache(maxsize=1)
 def get_calendar_style():

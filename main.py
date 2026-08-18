@@ -1,14 +1,17 @@
 import sys
-from PySide6.QtCore import QLockFile
+from PySide6.QtCore import QLockFile, Qt
 from PySide6.QtWidgets import QApplication, QMessageBox
 from config_manager import ConfigManager
 from startup_manager import StartupManager
 from ui_main import DDayWidget
+import glass_theme
 
 def main():
     # 자동 실행 식별 인수는 Qt에 전달하지 않습니다.
     qt_args = [arg for arg in sys.argv if arg != "--startup"]
+    QApplication.setAttribute(Qt.AA_DontUseNativeDialogs, True)
     app = QApplication(qt_args)
+    glass_theme.configure_application_theme(app)
     app.setOrganizationName("lottoria-dev")
     app.setApplicationName("MyDDayWidget")
 

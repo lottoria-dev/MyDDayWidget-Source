@@ -350,11 +350,11 @@ class GlassInfoDialog(DraggableGlassDialog):
                 <li><b>크기 :</b> 우측 하단(◢) 드래그</li>
             </ul>
             <hr style="background-color: rgba(0,0,0,0.05); border: 0; height: 1px; margin: 15px 0;">
-            <b>■ 버전 정보:</b> v2.6.0<br><br>
+            <b>■ 버전 정보:</b> v2.6.1<br><br>
             <b>■ 공식 배포 페이지</b><br>
             <a href="https://mathtime.kr/?page=dday" style="color: #1a73e8; text-decoration: none;">https://mathtime.kr/?page=dday</a><br><br>
             <b>■ 개발자 정보</b><br>
-            - 최근 업데이트: 2026.08.16<br>
+            - 최근 업데이트: 2026.08.18<br>
             - ✉: mathtime.ai@gmail.com<br>
             Copyright 2026 lottoria-dev. All rights reserved.<br>
         </div>

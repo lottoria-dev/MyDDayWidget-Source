@@ -71,7 +71,7 @@ Copyright (c) 2026 lottoria-dev. All rights reserved.
 
 ## 7. 제3자 소프트웨어와 오픈 소스 권리
 
-My D-Day Widget v2.6.0 배포본은 다음 구성요소를 사용하거나 빌드 과정에서 이용합니다.
+My D-Day Widget v2.6.1 배포본은 다음 구성요소를 사용하거나 빌드 과정에서 이용합니다.
 
 ### 7.1 PySide6, Shiboken6와 Qt
 
