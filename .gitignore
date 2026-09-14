@@ -1,0 +1,11 @@
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.log
+*.tmp
+TestResults/
+HolidayCache/
+holiday-key.bin
+dday_config*.ini

@@ -1,0 +1,85 @@
+<Window x:Class="DDay3.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
+        xmlns:controls="clr-namespace:DDay3.Controls"
+        mc:Ignorable="d"
+        Title="D-Day 3"
+        Icon="/Assets/DDay3.png"
+        Width="350" Height="250" MinWidth="180" MinHeight="64"
+        WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"
+        Background="Transparent" ShowInTaskbar="False"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Grayscale">
+    <Grid>
+        <Grid x:Name="Root" Width="350" HorizontalAlignment="Left" VerticalAlignment="Top">
+          <Grid x:Name="SurfaceInset" Margin="6">
+        <controls:GlassPanel x:Name="GlassSurface" CornerRadius="22" BorderThickness="0.8">
+            <Grid ClipToBounds="True">
+                <Grid x:Name="ContentLayout" Margin="14,12,14,13">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <controls:GlassPanel x:Name="ClockCard" Grid.Row="0" CornerRadius="17" Padding="9,4,9,7"
+                            BorderBrush="#34FFFFFF" BorderThickness="0.8">
+                            <StackPanel>
+                                <controls:ClockText x:Name="TimeText" Foreground="White" FontSize="45" FontWeight="Normal"
+                                                    Text="00:00:00" HorizontalAlignment="Stretch"/>
+                                <TextBlock x:Name="DateText" Text="0000-00-00 (월)" TextAlignment="Center"
+                                           Foreground="White" FontSize="12" FontWeight="Normal"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="LunarDateText" TextAlignment="Center" Visibility="Collapsed" Margin="0,3,0,0"/>
+                                <StackPanel x:Name="StopwatchControls" Orientation="Horizontal" HorizontalAlignment="Center"
+                                            Visibility="Collapsed" Margin="0,6,0,0">
+                                    <Button x:Name="StopwatchToggle" Content="시작" Click="StopwatchToggle_OnClick" Padding="12,3"/>
+                                    <Button Content="초기화" Click="StopwatchReset_OnClick" Padding="12,3"/>
+                                </StackPanel>
+                            </StackPanel>
+                    </controls:GlassPanel>
+
+                    <Border x:Name="ContentDivider" Grid.Row="1" Height="1" Margin="8,8,8,6" Background="#2EFFFFFF"/>
+
+                        <StackPanel x:Name="BodyContent" Grid.Row="2">
+                            <Border x:Name="DDayArea" Background="Transparent" PreviewMouseWheel="DDayArea_OnMouseWheel" ClipToBounds="True"
+                                    Focusable="True" KeyDown="DDayArea_OnKeyDown" AutomationProperties.Name="D-Day 목록"
+                                    ToolTip="휠로 일정 이동 · 클릭 후 ↑↓ 또는 Page Up/Down">
+                                <StackPanel x:Name="DDayItemsPanel">
+                                    <StackPanel.RenderTransform><TranslateTransform x:Name="CarouselSlide"/></StackPanel.RenderTransform>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="CalendarHost" Margin="0,7,0,0"
+                                    Background="Transparent" BorderBrush="Transparent" BorderThickness="0"
+                                    Visibility="Collapsed">
+                                <controls:GlassCalendar x:Name="CalendarView" Margin="0"
+                                    DateActivated="CalendarView_OnDateActivated"
+                                    DateContextRequested="CalendarView_OnDateContextRequested"/>
+                            </Border>
+                        </StackPanel>
+
+                </Grid>
+            </Grid>
+        </controls:GlassPanel>
+
+
+          </Grid>
+        </Grid>
+        <primitives:Thumb x:Name="ResizeGrip" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                          Width="24" Height="24" Margin="0,0,9,9" Cursor="SizeNWSE"
+                          DragDelta="ResizeGrip_OnDragDelta" DragCompleted="ResizeGrip_OnDragCompleted">
+            <primitives:Thumb.Template>
+                <ControlTemplate TargetType="primitives:Thumb">
+                    <Grid Background="Transparent">
+                        <Path Data="M 6,18 L 18,6 M 11,19 L 19,11 M 16,19 L 19,16"
+                              Stroke="#8CFFFFFF" StrokeThickness="1.4" StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"/>
+                    </Grid>
+                </ControlTemplate>
+            </primitives:Thumb.Template>
+        </primitives:Thumb>
+    </Grid>
+</Window>
