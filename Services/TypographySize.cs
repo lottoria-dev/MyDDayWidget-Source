@@ -7,7 +7,8 @@ namespace DDay3.Services
     {
         internal static string DefaultFamily(string key)
         {
-            return key == "time" || key == "dday_count" || key == "calendar" ? "Tahoma" : "Malgun Gothic";
+            if (key == "time") return "Consolas";
+            return key == "dday_count" || key == "calendar" ? "Tahoma" : "Malgun Gothic";
         }
         internal static int DefaultPoints(string key)
         {

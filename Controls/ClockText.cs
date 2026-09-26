@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,7 +7,7 @@ using System.Windows.Media;
 
 namespace DDay3.Controls
 {
-    // Center the visible glyphs, including bold/italic overhang, rather than inline whitespace.
+    // Fixed digit cells keep the clock still; measure ink as well as advances to protect overhang.
     public sealed class ClockText : Control
     {
         public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
@@ -24,12 +25,28 @@ namespace DDay3.Controls
 
         private sealed class Line
         {
-            internal FormattedText Digits, Marker;
+            internal Glyph[] Digits;
+            internal Point[] Origins;
+            internal FormattedText Marker;
             internal Rect DigitsInk, MarkerInk;
-            internal double Width, Height, Gap;
+            internal double Width, Height, Gap, Top, Bottom;
+        }
+        private sealed class Glyph
+        {
+            internal FormattedText Text;
+            internal Rect Ink;
+            internal double Left, Width;
+        }
+        private sealed class GlyphSet
+        {
+            internal readonly Dictionary<char, Glyph> Values = new Dictionary<char, Glyph>();
+            internal double Size, Left, Right, Top, Bottom, Height;
         }
         private Line cachedLine;
+        private GlyphSet cachedGlyphs;
         internal Rect LastInkBounds { get; private set; }
+        internal Rect LastLayoutBounds { get; private set; }
+        internal double[] LastDigitOrigins { get; private set; }
         private double PixelsPerDip { get { return VisualTreeHelper.GetDpi(this).PixelsPerDip; } }
         private double Guard { get { return 2.0 / PixelsPerDip; } }
 
@@ -50,6 +67,7 @@ namespace DDay3.Controls
                 e.Property == FontStyleProperty || e.Property == FontStretchProperty || e.Property == ForegroundProperty)
             {
                 cachedLine = null;
+                if (e.Property != TextProperty && e.Property != PeriodProperty) cachedGlyphs = null;
                 InvalidateMeasure();
                 InvalidateVisual();
             }
@@ -59,6 +77,7 @@ namespace DDay3.Controls
         {
             base.OnDpiChanged(oldDpi, newDpi);
             cachedLine = null;
+            cachedGlyphs = null;
             InvalidateMeasure();
             InvalidateVisual();
         }
@@ -70,13 +89,54 @@ namespace DDay3.Controls
                 null, TextFormattingMode.Display, PixelsPerDip);
         }
 
+        private Glyph ReadGlyph(char value, double size)
+        {
+            var text = Format(value.ToString(), size);
+            Rect ink = text.BuildGeometry(new Point()).Bounds;
+            if (ink.IsEmpty) ink = new Rect(0, 0, 0, text.Height);
+            double left = Math.Min(0, ink.Left);
+            return new Glyph { Text = text, Ink = ink, Left = left,
+                Width = Math.Max(text.WidthIncludingTrailingWhitespace, ink.Right) - left };
+        }
+
+        private GlyphSet Glyphs(double size)
+        {
+            if (cachedGlyphs != null && cachedGlyphs.Size == size) return cachedGlyphs;
+            var set = new GlyphSet { Size = size, Top = double.PositiveInfinity };
+            for (char digit = '0'; digit <= '9'; digit++)
+            {
+                Glyph glyph = ReadGlyph(digit, size);
+                set.Values.Add(digit, glyph);
+                set.Left = Math.Min(set.Left, glyph.Left);
+                set.Right = Math.Max(set.Right, glyph.Left + glyph.Width);
+                set.Top = Math.Min(set.Top, glyph.Ink.Top);
+                set.Bottom = Math.Max(set.Bottom, glyph.Ink.Bottom);
+                set.Height = Math.Max(set.Height, glyph.Text.Height);
+            }
+            cachedGlyphs = set;
+            return set;
+        }
+
         private Line CreateLine(string digits, string period, double size)
         {
-            Line line = new Line { Digits = Format(digits, size) };
-            line.DigitsInk = line.Digits.BuildGeometry(new Point()).Bounds;
-            if (line.DigitsInk.IsEmpty) line.DigitsInk = new Rect(0, 0, 0, line.Digits.Height);
-            line.Width = line.DigitsInk.Width;
-            line.Height = Math.Max(line.Digits.Height, line.DigitsInk.Height);
+            GlyphSet set = Glyphs(size);
+            var line = new Line { Digits = new Glyph[digits.Length], Origins = new Point[digits.Length],
+                DigitsInk = Rect.Empty, Top = set.Top, Bottom = set.Bottom, Height = set.Height };
+            double digitWidth = Math.Ceiling((set.Right - set.Left) * PixelsPerDip) / PixelsPerDip;
+            for (int i = 0; i < digits.Length; i++)
+            {
+                char value = digits[i];
+                Glyph glyph;
+                if (!set.Values.TryGetValue(value, out glyph)) set.Values[value] = glyph = ReadGlyph(value, size);
+                bool number = value >= '0' && value <= '9';
+                line.Digits[i] = glyph;
+                line.Origins[i] = new Point(line.Width - (number ? set.Left : glyph.Left), 0);
+                Rect ink = glyph.Ink; ink.Offset(line.Origins[i].X, 0); line.DigitsInk.Union(ink);
+                line.Top = Math.Min(line.Top, glyph.Ink.Top);
+                line.Bottom = Math.Max(line.Bottom, glyph.Ink.Bottom);
+                line.Width += number ? digitWidth : glyph.Width;
+            }
+            line.Height = Math.Max(line.Height, line.Bottom - line.Top);
             if (!string.IsNullOrEmpty(period))
             {
                 line.Marker = Format(period, Math.Max(1, PeriodFontSize * size / FontSize));
@@ -94,13 +154,12 @@ namespace DDay3.Controls
             return cachedLine ?? (cachedLine = CreateLine((Text ?? string.Empty).Trim(), (Period ?? string.Empty).Trim(), FontSize));
         }
 
-        // Check all digits and both AM/PM strings; "8" is not the widest digit in every font.
+        // Glyphs() already measures all ten digits. Only the marker and pattern length vary.
         internal double MeasureReferenceWidth(string pattern, string[] periods)
         {
             double width = CurrentLine().Width;
             foreach (string period in periods)
-                for (char digit = '0'; digit <= '9'; digit++)
-                    width = Math.Max(width, CreateLine(pattern.Replace('#', digit), period, FontSize).Width);
+                width = Math.Max(width, CreateLine(pattern.Replace('#', '0'), period, FontSize).Width);
             return Math.Ceiling(width + Guard * 2);
         }
 
@@ -117,6 +176,8 @@ namespace DDay3.Controls
         {
             base.OnRender(context);
             LastInkBounds = Rect.Empty;
+            LastLayoutBounds = Rect.Empty;
+            LastDigitOrigins = new double[0];
             double available = ActualWidth - Guard * 2;
             if (available <= 0 || ActualHeight <= 0) return;
             Line line = CurrentLine();
@@ -130,16 +191,28 @@ namespace DDay3.Controls
             if (line.Width > available) return;
             double left = (ActualWidth - line.Width) / 2;
             double centerY = ActualHeight / 2;
+            LastLayoutBounds = new Rect(left, 0, line.Width, ActualHeight);
             if (line.Marker != null)
             {
                 context.DrawText(line.Marker, new Point(left - line.MarkerInk.Left,
                     centerY - line.MarkerInk.Height / 2 - line.MarkerInk.Top));
+                LastInkBounds = new Rect(left, centerY - line.MarkerInk.Height / 2,
+                    line.MarkerInk.Width, line.MarkerInk.Height);
                 left += line.MarkerInk.Width + line.Gap;
             }
-            context.DrawText(line.Digits, new Point(left - line.DigitsInk.Left,
-                centerY - line.DigitsInk.Height / 2 - line.DigitsInk.Top));
-            double inkHeight = Math.Max(line.DigitsInk.Height, line.Marker == null ? 0 : line.MarkerInk.Height);
-            LastInkBounds = new Rect((ActualWidth - line.Width) / 2, centerY - inkHeight / 2, line.Width, inkHeight);
+            double top = centerY - (line.Bottom + line.Top) / 2;
+            LastDigitOrigins = new double[line.Digits.Length];
+            for (int i = 0; i < line.Digits.Length; i++)
+            {
+                Point origin = line.Origins[i]; origin.Offset(left, top);
+                LastDigitOrigins[i] = origin.X;
+                context.DrawText(line.Digits[i].Text, origin);
+            }
+            if (!line.DigitsInk.IsEmpty)
+            {
+                Rect ink = line.DigitsInk; ink.Offset(left, top);
+                Rect combined = LastInkBounds; combined.Union(ink); LastInkBounds = combined;
+            }
         }
     }
 }

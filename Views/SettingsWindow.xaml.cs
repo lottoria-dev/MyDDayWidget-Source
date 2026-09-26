@@ -107,18 +107,14 @@ namespace DDay3.Views
                 }
                 FontPresetCombo.Items.Add(new ComboBoxItem { Content = preset.Name, Tag = preset.Id });
             }
-            SelectByTag(FontPresetCombo, "ko-modern");
+            SelectByTag(FontPresetCombo, "clock-mono");
             TextColorModeCombo.Items.Add(new ComboBoxItem { Content = "밝은 글자 · 어두운 배경용", Tag = "light" });
             TextColorModeCombo.Items.Add(new ComboBoxItem { Content = "어두운 글자 · 밝은 배경용", Tag = "dark" });
             TextColorModeCombo.Items.Add(new ComboBoxItem { Content = "사용자 지정 색상 그대로", Tag = "custom" });
             WeekStartCombo.Items.Add(new ComboBoxItem { Content = "일요일", Tag = "Sunday" });
             WeekStartCombo.Items.Add(new ComboBoxItem { Content = "월요일", Tag = "Monday" });
-            for (int count = 1; count <= 10; count++)
-                VisibleDDayCountCombo.Items.Add(new ComboBoxItem { Content = count + "개", Tag = count.ToString(CultureInfo.InvariantCulture) });
             ClockModeCombo.Items.Add(new ComboBoxItem { Content = "일반 시계", Tag = "clock" });
-            ClockModeCombo.Items.Add(new ComboBoxItem { Content = "초시계 (스톱워치)", Tag = "stopwatch" });
-            foreach (int spacing in new[] { 8, 16, 24, 32, 48, 64 })
-                GridSizeCombo.Items.Add(new ComboBoxItem { Content = spacing.ToString(CultureInfo.InvariantCulture), Tag = spacing.ToString(CultureInfo.InvariantCulture) });
+            ClockModeCombo.Items.Add(new ComboBoxItem { Content = "스톱워치", Tag = "stopwatch" });
             TimeFormatCombo.Items.Add(new ComboBoxItem { Content = "24시간제", Tag = "24h" });
             TimeFormatCombo.Items.Add(new ComboBoxItem { Content = "12시간제", Tag = "12h" });
             DateFormatCombo.Items.Add(new ComboBoxItem { Content = "연-월-일", Tag = "yyyy-mm-dd" });
@@ -146,7 +142,9 @@ namespace DDay3.Views
             TextBlock name = new TextBlock { Text = label, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
             ComboBox font = new ComboBox { IsTextSearchEnabled = true, MinWidth = 0, FontSize = 12,
                 Padding = new Thickness(3, 2, 3, 2), Margin = new Thickness(1, 3, 3, 3), VerticalContentAlignment = VerticalAlignment.Center };
-            font.ItemsSource = fontNames;
+            font.ItemsSource = key == "time" ? TypographyPreset.ClockFamilies.Where(fontNames.Contains)
+                .Concat(fontNames.Except(TypographyPreset.ClockFamilies)).ToArray() : fontNames;
+            if (key == "time") font.ToolTip = "시계 추천: Consolas, Cascadia Mono, Courier New (설치된 고정폭 글꼴 우선)";
             ComboBox weight = new ComboBox { FontSize = 11, Padding = new Thickness(2, 2, 2, 2),
                 Margin = new Thickness(1, 3, 3, 3), VerticalContentAlignment = VerticalAlignment.Center };
             weight.Items.Add(new ComboBoxItem { Content = "보통", Tag = "Normal" });
@@ -215,19 +213,17 @@ namespace DDay3.Views
                 CalendarWeekendCheck.IsChecked = working.CalendarWeekendColors;
                 SelectByTag(TextColorModeCombo, working.TextColorMode);
                 SelectByTag(WeekStartCombo, working.WeekStart);
-                SelectByTag(VisibleDDayCountCombo, working.VisibleDDayCount.ToString(CultureInfo.InvariantCulture));
+                VisibleDDayCountInput.Value = working.VisibleDDayCount;
                 AutoStartCheck.IsChecked = working.AutoStart;
                 ShowSecondsCheck.IsChecked = working.ShowSeconds;
                 ShowLunarDateCheck.IsChecked = working.ShowLunarDate;
                 SnapToGridCheck.IsChecked = working.SnapToGrid;
                 SelectByTag(ClockModeCombo, working.ClockMode);
-                string gridTag = working.GridSize.ToString(CultureInfo.InvariantCulture);
-                if (!GridSizeCombo.Items.OfType<ComboBoxItem>().Any(item => Convert.ToString(item.Tag) == gridTag))
-                    GridSizeCombo.Items.Add(new ComboBoxItem { Content = gridTag, Tag = gridTag });
-                SelectByTag(GridSizeCombo, gridTag);
+                GridSizeInput.Value = working.GridSize;
                 OpacityDial.Value = working.PanelOpacity * 100.0;
                 ClockOpacityDial.Value = working.ClockPanelOpacity * 100.0;
                 DDayOpacityDial.Value = working.DDayPanelOpacity * 100.0;
+                PanelOutlineCheck.IsChecked = working.ShowPanelOutline;
                 TextOpacitySlider.Value = working.TextOpacity * 100.0;
                 GlassStrengthSlider.Value = Math.Max(10.0, working.GlassStrength * 100.0);
                 selectedGlassColor = working.GlassLightColor;
@@ -257,6 +253,8 @@ namespace DDay3.Views
 
         private AppSettings CollectSettings()
         {
+            var focusedNumber = Keyboard.FocusedElement as DDay3.Controls.IntegerInput;
+            if (focusedNumber != null) focusedNumber.Commit();
             CommitDDayEdits();
             if (rows.Count == 0) throw new InvalidOperationException("D-Day 항목을 하나 이상 추가해 주세요.");
 
@@ -278,16 +276,17 @@ namespace DDay3.Views
             value.CalendarWeekendColors = CalendarWeekendCheck.IsChecked == true;
             value.TextColorMode = SelectedTag(TextColorModeCombo, "custom");
             value.WeekStart = SelectedTag(WeekStartCombo, "Sunday");
-            value.VisibleDDayCount = int.Parse(SelectedTag(VisibleDDayCountCombo, "3"), CultureInfo.InvariantCulture);
+            value.VisibleDDayCount = (int)VisibleDDayCountInput.Value;
             value.AutoStart = AutoStartCheck.IsChecked == true;
             value.ShowSeconds = ShowSecondsCheck.IsChecked == true;
             value.ShowLunarDate = ShowLunarDateCheck.IsChecked == true;
             value.SnapToGrid = SnapToGridCheck.IsChecked == true;
             value.ClockMode = SelectedTag(ClockModeCombo, "clock");
-            value.GridSize = int.Parse(SelectedTag(GridSizeCombo, "16"), CultureInfo.InvariantCulture);
+            value.GridSize = (int)GridSizeInput.Value;
             value.PanelOpacity = OpacityDial.Value / 100.0;
             value.ClockPanelOpacity = ClockOpacityDial.Value / 100.0;
             value.DDayPanelOpacity = DDayOpacityDial.Value / 100.0;
+            value.ShowPanelOutline = PanelOutlineCheck.IsChecked == true;
             value.TextOpacity = TextOpacitySlider.Value / 100.0;
             value.GlassStrength = GlassStrengthSlider.Value / 100.0;
             value.GlassLightColor = selectedGlassColor;
@@ -614,14 +613,20 @@ namespace DDay3.Views
             MainWindow owner = Owner as MainWindow;
             if (isPopulating || owner == null) return;
             owner.PreviewGlassRelief(LightDirectionDial.Value,
-                (int)PanelDepthSlider.Value, (int)ClockDepthSlider.Value, (int)DDayDepthSlider.Value);
+                (int)PanelDepthSlider.Value, (int)ClockDepthSlider.Value, (int)DDayDepthSlider.Value,
+                PanelOutlineCheck.IsChecked == true);
+        }
+
+        private void PanelOutline_OnChanged(object sender, RoutedEventArgs e)
+        {
+            PreviewRelief();
         }
 
         private void CleanDesign_OnClick(object sender, RoutedEventArgs e)
         {
             AppSettings clean = AppSettings.CreateDefault();
             ThemePalette palette = ThemePalette.Preset(clean.ThemeId);
-            // Change only surface and text colors: keep editor rows, typography, geometry,
+            // Change surface appearance and text colors: keep editor rows, typography, geometry,
             // date/display choices and the user's unsaved edits intact.
             isPopulating = true;
             try
@@ -629,6 +634,7 @@ namespace DDay3.Views
                 OpacityDial.Value = clean.PanelOpacity * 100;
                 ClockOpacityDial.Value = clean.ClockPanelOpacity * 100;
                 DDayOpacityDial.Value = clean.DDayPanelOpacity * 100;
+                PanelOutlineCheck.IsChecked = clean.ShowPanelOutline;
                 PanelDepthSlider.Value = clean.PanelDepth;
                 ClockDepthSlider.Value = clean.ClockPanelDepth;
                 DDayDepthSlider.Value = clean.DDayPanelDepth;
@@ -656,15 +662,8 @@ namespace DDay3.Views
             if (dial != null) dial.Value += int.Parse(Convert.ToString(button.CommandParameter), CultureInfo.InvariantCulture);
         }
 
-        private void GlassStrengthSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void SurfaceSlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (GlassStrengthValue != null) GlassStrengthValue.Text = Math.Round(e.NewValue) + "%";
-            PreviewSurface();
-        }
-
-        private void TextOpacitySlider_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (TextOpacityValue != null) TextOpacityValue.Text = Math.Round(e.NewValue) + "%";
             PreviewSurface();
         }
 
@@ -683,6 +682,7 @@ namespace DDay3.Views
             preview.PanelOpacity = OpacityDial.Value / 100.0;
             preview.ClockPanelOpacity = ClockOpacityDial.Value / 100.0;
             preview.DDayPanelOpacity = DDayOpacityDial.Value / 100.0;
+            preview.ShowPanelOutline = PanelOutlineCheck.IsChecked == true;
             preview.TextOpacity = TextOpacitySlider.Value / 100.0;
             preview.GlassStrength = GlassStrengthSlider.Value / 100.0;
             preview.GlassLightColor = selectedGlassColor;

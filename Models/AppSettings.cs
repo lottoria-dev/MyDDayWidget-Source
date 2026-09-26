@@ -12,6 +12,7 @@ namespace DDay3.Models
         internal double PanelOpacity { get; set; }
         internal double ClockPanelOpacity { get; set; }
         internal double DDayPanelOpacity { get; set; }
+        internal bool ShowPanelOutline { get; set; }
         internal double TextOpacity { get; set; }
         internal bool Topmost { get; set; }
         internal bool AutoStart { get; set; }
@@ -84,6 +85,7 @@ namespace DDay3.Models
                 PanelOpacity = 0.70,
                 ClockPanelOpacity = 0.60,
                 DDayPanelOpacity = 0.60,
+                ShowPanelOutline = true,
                 TextOpacity = 1.0,
                 Topmost = false,
                 AutoStart = false,
@@ -114,7 +116,7 @@ namespace DDay3.Models
                 ColorDDayCount = "#C8D0D8",
                 ColorDDayDate = "#BBC4CC",
                 ColorCalendar = "#F1F3F5",
-                FontTime = "Tahoma",
+                FontTime = "Consolas",
                 FontDate = "Malgun Gothic",
                 FontDDayTitle = "Malgun Gothic",
                 FontDDayCount = "Tahoma",

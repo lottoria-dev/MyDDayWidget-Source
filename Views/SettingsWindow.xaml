@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:DDay3.Controls"
+        xmlns:views="clr-namespace:DDay3.Views"
         Title="D-Day 3 환경 설정" Width="600" Height="700" MinWidth="560" MinHeight="580"
         WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="True"
         Background="Transparent" ShowInTaskbar="False" WindowStartupLocation="CenterOwner">
@@ -83,7 +84,7 @@
                             <Grid Margin="0,6,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="한 번에 표시" Margin="4,0,8,0" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="VisibleDDayCountCombo" Grid.Column="1"/>
+                                <controls:IntegerInput x:Name="VisibleDDayCountInput" Grid.Column="1" Minimum="1" Maximum="10" Value="3" ToolTip="표시 개수 (1~10)" AutomationProperties.Name="한 번에 표시할 일정 수"/>
                                 <TextBlock Grid.Column="2" Text="나머지는 휠로 이동" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
                             </Grid>
                         </StackPanel>
@@ -94,26 +95,35 @@
                         <StackPanel Margin="10">
                             <Border Style="{StaticResource SettingsSection}"><StackPanel>
                                 <TextBlock Text="시계와 날짜" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                                    <TextBlock Text="시계 종류" VerticalAlignment="Center"/><ComboBox x:Name="ClockModeCombo" Grid.Column="1"/>
-                                    <TextBlock Text="시간 형식" Grid.Row="1" VerticalAlignment="Center"/><ComboBox x:Name="TimeFormatCombo" Grid.Row="1" Grid.Column="1"/>
-                                    <TextBlock Text="날짜 형식" Grid.Row="2" VerticalAlignment="Center"/><ComboBox x:Name="DateFormatCombo" Grid.Row="2" Grid.Column="1"/>
-                                    <TextBlock Text="표시 언어" Grid.Row="3" VerticalAlignment="Center"/><ComboBox x:Name="DayFormatCombo" Grid.Row="3" Grid.Column="1"/>
+                                <Grid x:Name="ClockDateOptions">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <TextBlock Text="시계 종류" VerticalAlignment="Center"/><ComboBox x:Name="ClockModeCombo" Grid.Column="1" Padding="3,5"/>
+                                    <TextBlock Text="시간 형식" Grid.Column="3" VerticalAlignment="Center"/><ComboBox x:Name="TimeFormatCombo" Grid.Column="4" Padding="3,5"/>
+                                    <TextBlock Text="날짜 형식" Grid.Row="1" VerticalAlignment="Center"/><ComboBox x:Name="DateFormatCombo" Grid.Row="1" Grid.Column="1" Padding="3,5"/>
+                                    <TextBlock Text="표시 언어" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center"/><ComboBox x:Name="DayFormatCombo" Grid.Row="1" Grid.Column="4" Padding="3,5"/>
                                 </Grid>
                                 <WrapPanel><CheckBox x:Name="ShowSecondsCheck" Content="초 표시" Margin="4,7,20,7"/><CheckBox x:Name="ShowLunarDateCheck" Content="현재 날짜 아래 음력 표시"/></WrapPanel>
                             </StackPanel></Border>
                             <Border Style="{StaticResource SettingsSection}"><StackPanel>
                                 <TextBlock Text="달력과 창" FontSize="15" FontWeight="SemiBold"/>
-                                <WrapPanel><CheckBox x:Name="ShowCalendarCheck" Content="달력 표시" Margin="4,7,20,7"/><CheckBox x:Name="CalendarWeekendCheck" Content="주말 색상 구분"/></WrapPanel>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="한 주의 시작" VerticalAlignment="Center"/><ComboBox x:Name="WeekStartCombo" Grid.Column="1"/>
-                                </Grid>
-                                <WrapPanel><CheckBox x:Name="TopmostCheck" Content="항상 위에 표시" Margin="4,7,20,7"/><CheckBox x:Name="AutoStartCheck" Content="Windows 시작 시 실행"/></WrapPanel>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="96"/></Grid.ColumnDefinitions>
-                                    <CheckBox x:Name="SnapToGridCheck" Content="이동 후 바탕화면 격자에 맞추기"/>
-                                    <ComboBox x:Name="GridSizeCombo" Grid.Column="1" ToolTip="격자 간격(DIP)"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <CheckBox x:Name="ShowCalendarCheck" Content="달력 표시"/>
+                                    <CheckBox x:Name="TopmostCheck" Grid.Column="1" Content="항상 위에 표시"/>
+                                    <CheckBox x:Name="CalendarWeekendCheck" Grid.Row="1" Content="주말 색상 구분"/>
+                                    <Grid Grid.Row="1" Grid.Column="1">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="한 주의 시작" Margin="4,0,5,0" VerticalAlignment="Center"/>
+                                        <ComboBox x:Name="WeekStartCombo" Grid.Column="1" Padding="3,5"/>
+                                    </Grid>
+                                    <CheckBox x:Name="AutoStartCheck" Grid.Row="2" Content="Windows 시작 시 실행"/>
+                                    <Grid Grid.Row="2" Grid.Column="1">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                                        <CheckBox x:Name="SnapToGridCheck" ToolTip="이동 후 지정한 DIP 간격으로 정렬"><TextBlock Text="바탕화면 격자에 맞추기" TextWrapping="Wrap"/></CheckBox>
+                                        <controls:IntegerInput x:Name="GridSizeInput" Grid.Column="1" Minimum="8" Maximum="64" Value="16" VerticalAlignment="Center" ToolTip="격자 간격 (8~64 DIP)" AutomationProperties.Name="격자 간격"/>
+                                    </Grid>
                                 </Grid>
                             </StackPanel></Border>
                             <Border Style="{StaticResource SettingsSection}"><StackPanel>
@@ -122,35 +132,40 @@
                                     <Button Grid.Column="1" Content="클리어 기본 적용" Click="CleanDesign_OnClick"
                                         ToolTip="무채색 유리·은은한 깊이·밝은 글자색 적용. 글꼴·크기·일정은 유지합니다."/>
                                 </Grid>
+                                <CheckBox x:Name="PanelOutlineCheck" Content="전체 배경에 얇은 흰색 경계선 표시" Margin="0,8,0,0"
+                                    ToolTip="바탕화면과 위젯의 경계를 구분합니다. 배경 농도·색조와 별도로 표시합니다."
+                                    Checked="PanelOutline_OnChanged" Unchecked="PanelOutline_OnChanged"/>
                                 <UniformGrid Columns="3" Margin="0,10,0,8">
                                     <StackPanel HorizontalAlignment="Center">
                                         <TextBlock Text="전체 배경" TextAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                         <controls:OpacityJogDial x:Name="OpacityDial" Width="76" Height="76" HorizontalAlignment="Center" AutomationProperties.Name="전체 배경 유리판 농도"/>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Content="−" Width="25" Padding="0" Margin="1" Tag="{Binding ElementName=OpacityDial}" CommandParameter="-5" Click="LayerOpacityStep_OnClick"/>
-                                            <TextBlock Width="42" Text="{Binding Value, ElementName=OpacityDial, StringFormat={}{0:0}%}" TextAlignment="Center" VerticalAlignment="Center"/>
+                                            <controls:IntegerInput Width="42" Minimum="5" Maximum="100" Value="{Binding Value, ElementName=OpacityDial, Mode=TwoWay}" ToolTip="전체 배경 농도 (5~100%)" AutomationProperties.Name="전체 배경 농도 %"/>
+                                            <TextBlock Text="%" VerticalAlignment="Center"/>
                                             <Button Content="+" Width="25" Padding="0" Margin="1" Tag="{Binding ElementName=OpacityDial}" CommandParameter="5" Click="LayerOpacityStep_OnClick"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
                                             <TextBlock Text="깊이 " VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding Value, ElementName=PanelDepthSlider, StringFormat={}{0:+0;-0;0}}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <controls:IntegerInput Width="52" Minimum="-100" Maximum="200" Value="{Binding Value, ElementName=PanelDepthSlider, Mode=TwoWay}" ToolTip="전체 배경 깊이 (-100~200)" AutomationProperties.Name="전체 배경 깊이"/>
                                         </StackPanel>
-                                        <Slider x:Name="PanelDepthSlider" Width="126" Minimum="-100" Maximum="100" Value="0"
+                                        <Slider x:Name="PanelDepthSlider" Width="126" Minimum="-100" Maximum="200" Value="0"
                                             TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="10" Margin="0,4"
                                             AutomationProperties.Name="전체 배경 음각·양각 깊이" ValueChanged="DepthSlider_OnValueChanged"/>
-                                        <Grid Width="126" TextElement.FontSize="10"><TextBlock Text="음각"/><TextBlock Text="0" HorizontalAlignment="Center"/><TextBlock Text="양각" HorizontalAlignment="Right"/></Grid>
+                                        <Grid Width="126" TextElement.FontSize="10"><TextBlock Text="-100"/><TextBlock Text="+200" HorizontalAlignment="Right"/></Grid>
                                     </StackPanel>
                                     <StackPanel HorizontalAlignment="Center">
                                         <TextBlock Text="시계" TextAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                         <controls:OpacityJogDial x:Name="ClockOpacityDial" Width="76" Height="76" HorizontalAlignment="Center" AutomationProperties.Name="시계 유리판 농도"/>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Content="−" Width="25" Padding="0" Margin="1" Tag="{Binding ElementName=ClockOpacityDial}" CommandParameter="-5" Click="LayerOpacityStep_OnClick"/>
-                                            <TextBlock Width="42" Text="{Binding Value, ElementName=ClockOpacityDial, StringFormat={}{0:0}%}" TextAlignment="Center" VerticalAlignment="Center"/>
+                                            <controls:IntegerInput Width="42" Minimum="5" Maximum="100" Value="{Binding Value, ElementName=ClockOpacityDial, Mode=TwoWay}" ToolTip="시계 농도 (5~100%)" AutomationProperties.Name="시계 농도 %"/>
+                                            <TextBlock Text="%" VerticalAlignment="Center"/>
                                             <Button Content="+" Width="25" Padding="0" Margin="1" Tag="{Binding ElementName=ClockOpacityDial}" CommandParameter="5" Click="LayerOpacityStep_OnClick"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
                                             <TextBlock Text="깊이 " VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding Value, ElementName=ClockDepthSlider, StringFormat={}{0:+0;-0;0}}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <controls:IntegerInput Width="52" Minimum="-100" Maximum="100" Value="{Binding Value, ElementName=ClockDepthSlider, Mode=TwoWay}" ToolTip="시계 깊이 (-100~100)" AutomationProperties.Name="시계 깊이"/>
                                         </StackPanel>
                                         <Slider x:Name="ClockDepthSlider" Width="126" Minimum="-100" Maximum="100" Value="0"
                                             TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="10" Margin="0,4"
@@ -162,12 +177,13 @@
                                         <controls:OpacityJogDial x:Name="DDayOpacityDial" Width="76" Height="76" HorizontalAlignment="Center" AutomationProperties.Name="D-Day 유리판 농도"/>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Content="−" Width="25" Padding="0" Margin="1" Tag="{Binding ElementName=DDayOpacityDial}" CommandParameter="-5" Click="LayerOpacityStep_OnClick"/>
-                                            <TextBlock Width="42" Text="{Binding Value, ElementName=DDayOpacityDial, StringFormat={}{0:0}%}" TextAlignment="Center" VerticalAlignment="Center"/>
+                                            <controls:IntegerInput Width="42" Minimum="5" Maximum="100" Value="{Binding Value, ElementName=DDayOpacityDial, Mode=TwoWay}" ToolTip="D-Day 농도 (5~100%)" AutomationProperties.Name="D-Day 농도 %"/>
+                                            <TextBlock Text="%" VerticalAlignment="Center"/>
                                             <Button Content="+" Width="25" Padding="0" Margin="1" Tag="{Binding ElementName=DDayOpacityDial}" CommandParameter="5" Click="LayerOpacityStep_OnClick"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
                                             <TextBlock Text="깊이 " VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding Value, ElementName=DDayDepthSlider, StringFormat={}{0:+0;-0;0}}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <controls:IntegerInput Width="52" Minimum="-100" Maximum="100" Value="{Binding Value, ElementName=DDayDepthSlider, Mode=TwoWay}" ToolTip="D-Day 깊이 (-100~100)" AutomationProperties.Name="D-Day 깊이"/>
                                         </StackPanel>
                                         <Slider x:Name="DDayDepthSlider" Width="126" Minimum="-100" Maximum="100" Value="0"
                                             TickFrequency="1" IsSnapToTickEnabled="True" SmallChange="1" LargeChange="10" Margin="0,4"
@@ -175,24 +191,30 @@
                                         <Grid Width="126" TextElement.FontSize="10"><TextBlock Text="음각"/><TextBlock Text="0" HorizontalAlignment="Center"/><TextBlock Text="양각" HorizontalAlignment="Right"/></Grid>
                                     </StackPanel>
                                 </UniformGrid>
-                                <TextBlock Text="농도 5~100% · 깊이 −100 음각 / 0 평면 / +100 양각" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                                <TextBlock Text="음각 −100 / 평면 0 / 양각 +100 · 전체 배경 양각 +200" TextWrapping="Wrap" Margin="0,0,0,5"/>
                                 <WrapPanel x:Name="DepthPresetPanel" Margin="0,0,0,4"/>
                                 <TextBlock Text="깊이 프리셋은 깊이만 바꿉니다. 색조·농도·글자는 유지합니다." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="104"/><ColumnDefinition Width="*"/><ColumnDefinition Width="42"/></Grid.ColumnDefinitions>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="104"/><ColumnDefinition Width="*"/><ColumnDefinition Width="58"/></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                     <TextBlock Text="글자 선명도" VerticalAlignment="Center"/>
-                                    <Slider x:Name="TextOpacitySlider" Grid.Column="1" Minimum="40" Maximum="100" Value="100" TickFrequency="5" Margin="5,8" ValueChanged="TextOpacitySlider_OnValueChanged"/>
-                                    <TextBlock x:Name="TextOpacityValue" Grid.Column="2" Text="100%" TextAlignment="Right" VerticalAlignment="Center"/>
+                                    <Slider x:Name="TextOpacitySlider" Grid.Column="1" Minimum="40" Maximum="100" Value="100" TickFrequency="1" IsSnapToTickEnabled="True" Margin="5,8" ValueChanged="SurfaceSlider_OnValueChanged"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <controls:IntegerInput Width="44" Minimum="40" Maximum="100" Value="{Binding Value, ElementName=TextOpacitySlider, Mode=TwoWay}" ToolTip="글자 선명도 (40~100%)" AutomationProperties.Name="글자 선명도 %"/><TextBlock Text="%" VerticalAlignment="Center"/>
+                                    </StackPanel>
                                     <TextBlock Grid.Row="1" Text="공통 색조 강도" VerticalAlignment="Center"/>
-                                    <Slider x:Name="GlassStrengthSlider" Grid.Row="1" Grid.Column="1" Minimum="10" Maximum="100" TickFrequency="5" Margin="5,8" ValueChanged="GlassStrengthSlider_OnValueChanged"/>
-                                    <TextBlock x:Name="GlassStrengthValue" Grid.Row="1" Grid.Column="2" TextAlignment="Right" VerticalAlignment="Center"/>
+                                    <Slider x:Name="GlassStrengthSlider" Grid.Row="1" Grid.Column="1" Minimum="10" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Margin="5,8" ValueChanged="SurfaceSlider_OnValueChanged"/>
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <controls:IntegerInput Width="44" Minimum="10" Maximum="100" Value="{Binding Value, ElementName=GlassStrengthSlider, Mode=TwoWay}" ToolTip="공통 색조 강도 (10~100%)" AutomationProperties.Name="공통 색조 강도 %"/><TextBlock Text="%" VerticalAlignment="Center"/>
+                                    </StackPanel>
                                 </Grid>
                                 <Grid Margin="0,8,0,0">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="104"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <StackPanel>
                                         <controls:LightDirectionDial x:Name="LightDirectionDial" HorizontalAlignment="Center"
                                             AutomationProperties.Name="공통 광원 방향" ToolTip="빛이 들어오는 방향 · 드래그 / 휠 / 방향키"/>
-                                        <TextBlock Text="{Binding Value, ElementName=LightDirectionDial, StringFormat={}{0:0}°}" TextAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <controls:IntegerInput Width="52" Minimum="0" Maximum="359" Wrap="True" Value="{Binding Value, ElementName=LightDirectionDial, Mode=TwoWay}" ToolTip="광원 각도 (0~359°, 360°는 0°)" AutomationProperties.Name="광원 각도"/><TextBlock Text="°" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                                         <TextBlock Text="공통 광원 방향·색조" FontWeight="SemiBold"/>
@@ -273,6 +295,11 @@
                             <TextBlock Text="선택 옵션이며 기본값은 꺼짐입니다. 연동을 켜면 달력에 보이는 연도만 조회하고, 받은 자료는 7일간 재사용합니다. 실패하면 이전 자료를 유지합니다. 연동 확인 버튼은 선택한 자료를 저장 전에도 조회·캐시 갱신합니다. 24절기는 월별 자료를 모두 받은 뒤 표시합니다." TextWrapping="Wrap" Margin="4,2,4,10" Foreground="{DynamicResource SecondaryTextBrush}"/>
                             <TextBlock Text="인증키는 저장 버튼을 눌러야 Windows 계정에 암호화해 보관됩니다. INI·내보내기·로그에는 넣지 않습니다. 다른 PC에서는 다시 입력하세요. 공휴일·절기 이름은 제공기관의 원문을 사용하며 임시·대체공휴일은 제공 데이터에 반영된 경우 표시합니다." TextWrapping="Wrap" Margin="4,2" Foreground="{DynamicResource SecondaryTextBrush}"/>
                         </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem Header="정보" x:Name="AboutTab">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <views:AboutContent Margin="16,24"/>
                     </ScrollViewer>
                 </TabItem>
             </TabControl>

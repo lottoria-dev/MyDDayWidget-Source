@@ -200,6 +200,7 @@ namespace DDay3.Services
                 settings.PanelOpacity = ReadDouble(window, "panel_opacity", legacyAlpha, 0.05, 1.00, warnings);
                 settings.ClockPanelOpacity = ReadDouble(window, "clock_panel_opacity", settings.PanelOpacity, 0.05, 1.00, warnings);
                 settings.DDayPanelOpacity = ReadDouble(window, "dday_panel_opacity", settings.PanelOpacity, 0.05, 1.00, warnings);
+                settings.ShowPanelOutline = ReadBool(window, "show_panel_outline", settings.ShowPanelOutline, warnings);
                 settings.TextOpacity = ReadDouble(window, "text_opacity", 1.0, 0.40, 1.00, warnings);
                 settings.Topmost = ReadBool(window, "topmost", settings.Topmost, warnings);
                 // 3.0.0-dev.2부터 유리판은 항상 사용합니다. 이전 INI의 false 값은 무시합니다.
@@ -220,7 +221,7 @@ namespace DDay3.Services
                 settings.GlassStrength = ReadDouble(window, "glass_strength", settings.GlassStrength, 0.10, 1.0, warnings);
                 settings.GlassLightColor = ReadColor(window, "glass_light_color", settings.GlassLightColor, warnings);
                 settings.GlassLightDirection = ReadDouble(window, "glass_light_direction", settings.GlassLightDirection, 0, 360, warnings);
-                settings.PanelDepth = ReadInt(window, "panel_depth", settings.PanelDepth, -100, 100, warnings);
+                settings.PanelDepth = ReadInt(window, "panel_depth", settings.PanelDepth, -100, 200, warnings);
                 settings.ClockPanelDepth = ReadInt(window, "clock_panel_depth", settings.ClockPanelDepth, -100, 100, warnings);
                 settings.DDayPanelDepth = ReadInt(window, "dday_panel_depth", settings.DDayPanelDepth, -100, 100, warnings);
                 settings.ThemeId = ReadEnum(window, "theme_id", "custom",
@@ -388,7 +389,7 @@ namespace DDay3.Services
         {
             StringBuilder text = new StringBuilder();
             text.AppendLine("[Meta]");
-            text.AppendLine("schema_version = 13");
+            text.AppendLine("schema_version = 14");
             text.AppendLine("saved_at = " + DateTimeOffset.Now.ToString("o"));
             text.AppendLine();
             text.AppendLine("[Window]");
@@ -400,6 +401,7 @@ namespace DDay3.Services
             Write(text, "panel_opacity", value.PanelOpacity.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "clock_panel_opacity", value.ClockPanelOpacity.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "dday_panel_opacity", value.DDayPanelOpacity.ToString("0.00", CultureInfo.InvariantCulture));
+            Write(text, "show_panel_outline", value.ShowPanelOutline);
             Write(text, "text_opacity", value.TextOpacity.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "topmost", value.Topmost);
             Write(text, "use_glass_background", true);
@@ -502,7 +504,7 @@ namespace DDay3.Services
             value.GridSize = Clamp(value.GridSize, 8, 64);
             value.GlassStrength = Clamp(value.GlassStrength, 0.10, 1.0);
             value.GlassLightDirection = GlassLighting.NormalizeDirection(value.GlassLightDirection);
-            value.PanelDepth = GlassLighting.NormalizeDepth(value.PanelDepth);
+            value.PanelDepth = GlassLighting.NormalizeDepth(value.PanelDepth, true);
             value.ClockPanelDepth = GlassLighting.NormalizeDepth(value.ClockPanelDepth);
             value.DDayPanelDepth = GlassLighting.NormalizeDepth(value.DDayPanelDepth);
             if (string.IsNullOrWhiteSpace(value.ThemeId)) value.ThemeId = "custom";

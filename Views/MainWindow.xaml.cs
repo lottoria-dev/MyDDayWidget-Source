@@ -131,7 +131,7 @@ namespace DDay3.Views
             ApplySettings(true, false);
         }
 
-        internal void PreviewGlassRelief(double direction, int background, int clock, int dday)
+        internal void PreviewGlassRelief(double direction, int background, int clock, int dday, bool showPanelOutline)
         {
             if (previewOriginal == null)
             {
@@ -140,15 +140,16 @@ namespace DDay3.Views
                 settings = settings.Clone();
             }
             settings.GlassLightDirection = GlassLighting.NormalizeDirection(direction);
-            settings.PanelDepth = GlassLighting.NormalizeDepth(background);
+            settings.PanelDepth = GlassLighting.NormalizeDepth(background, true);
             settings.ClockPanelDepth = GlassLighting.NormalizeDepth(clock);
             settings.DDayPanelDepth = GlassLighting.NormalizeDepth(dday);
+            settings.ShowPanelOutline = showPanelOutline;
             // Pointer motion changes surface drawing only: no typography layout, calendar
             // rebuilding, clock restart, or public-data requests while turning the dial.
-            ApplyPanelLighting(GlassSurface, settings, settings.PanelOpacity, settings.PanelDepth, 22);
-            ApplyPanelLighting(ClockCard, settings, settings.ClockPanelOpacity, settings.ClockPanelDepth, 17);
+            ApplyPanelLighting(GlassSurface, settings, settings.PanelOpacity, settings.PanelDepth, GlassPanel.BackgroundRadius, true);
+            ApplyPanelLighting(ClockCard, settings, settings.ClockPanelOpacity, settings.ClockPanelDepth, GlassPanel.ClockRadius);
             foreach (GlassPanel capsule in DDayItemsPanel.Children.OfType<GlassPanel>())
-                ApplyPanelLighting(capsule, settings, settings.DDayPanelOpacity, settings.DDayPanelDepth, 12);
+                ApplyPanelLighting(capsule, settings, settings.DDayPanelOpacity, settings.DDayPanelDepth, GlassPanel.ScheduleRadius);
         }
 
         internal void RestoreAppearance()
@@ -161,10 +162,12 @@ namespace DDay3.Views
             ApplyWindowSize(previewOriginalWidth);
         }
 
-        private static void ApplyPanelLighting(GlassPanel panel, AppSettings value, double opacity, int depth, double referenceRadius)
+        private static void ApplyPanelLighting(GlassPanel panel, AppSettings value, double opacity, int depth, double referenceRadius, bool background = false)
         {
-            if (panel != null) panel.SetLighting(LiquidGlassTheme.ParseColor(value.GlassLightColor, Colors.LightBlue),
-                value.GlassLightDirection, opacity, depth, referenceRadius);
+            if (panel == null) return;
+            panel.ShowWhiteOutline = background && value.ShowPanelOutline;
+            panel.SetLighting(LiquidGlassTheme.ParseColor(value.GlassLightColor, Colors.LightBlue),
+                value.GlassLightDirection, opacity, depth, referenceRadius, background);
         }
 
         private void ApplySurfaceSettings(AppSettings value)
@@ -173,10 +176,10 @@ namespace DDay3.Views
             Opacity = 1.0;
             GlassSurface.Background = LiquidGlassTheme.CreatePanelBrush(value);
             GlassSurface.BorderBrush = Brushes.Transparent;
-            ApplyPanelLighting(GlassSurface, value, value.PanelOpacity, value.PanelDepth, 22);
+            ApplyPanelLighting(GlassSurface, value, value.PanelOpacity, value.PanelDepth, GlassPanel.BackgroundRadius, true);
             ClockCard.Background = LiquidGlassTheme.CreateClockCardBrush(value);
             ClockCard.BorderBrush = Brushes.Transparent;
-            ApplyPanelLighting(ClockCard, value, value.ClockPanelOpacity, value.ClockPanelDepth, 17);
+            ApplyPanelLighting(ClockCard, value, value.ClockPanelOpacity, value.ClockPanelDepth, GlassPanel.ClockRadius);
             CalendarHost.Background = Brushes.Transparent;
             ContentDivider.Background = LiquidGlassTheme.CreateCardBorder(value.PanelOpacity);
             TimeText.Opacity = DateText.Opacity = LunarDateText.Opacity = CalendarView.Opacity = value.TextOpacity;
@@ -185,7 +188,7 @@ namespace DDay3.Views
             {
                 capsule.Background = LiquidGlassTheme.CreateScheduleCapsuleBrush(value);
                 capsule.BorderBrush = Brushes.Transparent;
-                ApplyPanelLighting(capsule as GlassPanel, value, value.DDayPanelOpacity, value.DDayPanelDepth, 12);
+                ApplyPanelLighting(capsule as GlassPanel, value, value.DDayPanelOpacity, value.DDayPanelDepth, GlassPanel.ScheduleRadius);
                 if (capsule.Child != null) capsule.Child.Opacity = value.TextOpacity;
             }
             ApplyTextColors();
@@ -252,11 +255,11 @@ namespace DDay3.Views
                     displaySettings.ColorDDayTitle, ParseWeight(settings.WeightDDayTitle));
                 row.Children.Add(title);
 
-                StackPanel right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
-                TextBlock count = new TextBlock { TextAlignment = TextAlignment.Right, Tag = item };
+                StackPanel right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center };
+                TextBlock count = new TextBlock { TextAlignment = TextAlignment.Right, HorizontalAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(0), Margin = new Thickness(0), Tag = item };
                 SetTextStyle(count, settings.FontDDayCount, settings.SizeDDayCount,
                     displaySettings.ColorDDayCount, ParseWeight(settings.WeightDDayCount));
-                TextBlock detail = new TextBlock { TextAlignment = TextAlignment.Right, Tag = "detail" };
+                TextBlock detail = new TextBlock { TextAlignment = TextAlignment.Right, HorizontalAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(0), Margin = new Thickness(0), Tag = "detail" };
                 SetTextStyle(detail, settings.FontDDayDate, settings.SizeDDayDate,
                     displaySettings.ColorDDayDate, ParseWeight(settings.WeightDDayDate));
                 right.Children.Add(count);
@@ -268,13 +271,13 @@ namespace DDay3.Views
                     Child = row,
                     Height = rowHeight,
                     Margin = new Thickness(2, 2, 2, 2),
-                    Padding = new Thickness(7, 0, 7, 0),
-                    CornerRadius = new CornerRadius(12),
+                    Padding = SchedulePadding(1),
+                    CornerRadius = new CornerRadius(GlassPanel.ScheduleRadius),
                     BorderThickness = new Thickness(0.8),
                     Background = LiquidGlassTheme.CreateScheduleCapsuleBrush(settings),
                     BorderBrush = Brushes.Transparent
                 };
-                ApplyPanelLighting(capsule, settings, settings.DDayPanelOpacity, settings.DDayPanelDepth, 12);
+                ApplyPanelLighting(capsule, settings, settings.DDayPanelOpacity, settings.DDayPanelDepth, GlassPanel.ScheduleRadius);
                 DDayItemsPanel.Children.Add(capsule);
             }
         }
@@ -701,8 +704,8 @@ namespace DDay3.Views
                     detailSample.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     detailWidth = Math.Max(detailWidth, detailSample.DesiredSize.Width);
                 }
-                designWidth = Math.Max(designWidth, Math.Max(countSample.DesiredSize.Width, detailWidth) +
-                    Math.Max(110, settings.SizeDDayTitle * 5) + 56);
+                designWidth = Math.Max(designWidth, WidgetLayoutPolicy.ScheduleMinimumWidth(
+                    Math.Max(countSample.DesiredSize.Width, detailWidth), settings.SizeDDayTitle));
                 DateText.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 LunarDateText.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 designWidth = Math.Max(designWidth, Math.Max(DateText.DesiredSize.Width, LunarDateText.DesiredSize.Width) + 64);
@@ -740,9 +743,9 @@ namespace DDay3.Views
             currentScale = scale;
             SurfaceInset.Margin = new Thickness(6 * scale);
             ContentLayout.Margin = new Thickness(14 * scale, 12 * scale, 14 * scale, 13 * scale);
-            GlassSurface.CornerRadius = new CornerRadius(22 * scale);
+            GlassSurface.CornerRadius = new CornerRadius(GlassPanel.BackgroundRadius * scale);
             GlassSurface.BorderThickness = new Thickness(0.8 * scale);
-            ClockCard.CornerRadius = new CornerRadius(17 * scale);
+            ClockCard.CornerRadius = new CornerRadius(GlassPanel.ClockRadius * scale);
             ClockCard.Padding = new Thickness(9 * scale, 4 * scale, 9 * scale, 7 * scale);
             ClockCard.BorderThickness = new Thickness(0.8 * scale);
             ContentDivider.Margin = new Thickness(8 * scale, 8 * scale, 8 * scale, 6 * scale);
@@ -764,8 +767,8 @@ namespace DDay3.Views
                 if (row == null) continue;
                 capsule.Height = finalRowHeight;
                 capsule.Margin = new Thickness(2 * scale);
-                capsule.Padding = new Thickness(7 * scale, 0, 7 * scale, 0);
-                capsule.CornerRadius = new CornerRadius(12 * scale);
+                capsule.Padding = SchedulePadding(scale);
+                capsule.CornerRadius = new CornerRadius(GlassPanel.ScheduleRadius * scale);
                 capsule.BorderThickness = new Thickness(0.8 * scale);
                 TextBlock title = row.Children.OfType<TextBlock>().First();
                 title.FontSize = settings.SizeDDayTitle * 96.0 / 72.0 * scale;
@@ -777,6 +780,13 @@ namespace DDay3.Views
             CalendarHost.Margin = new Thickness(0, 7 * scale, 0, 0);
             CalendarView.Margin = new Thickness(0);
             CalendarView.ApplyScale(scale);
+        }
+
+        private static Thickness SchedulePadding(double scale)
+        {
+            // Quantize once, then use the same inset at both ends of every capsule.
+            double inset = Math.Round(WidgetLayoutPolicy.ScheduleSidePadding * scale);
+            return new Thickness(inset, 0, inset, 0);
         }
 
         private void SnapNow()

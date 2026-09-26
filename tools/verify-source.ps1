@@ -27,7 +27,7 @@ if ($projectText -notmatch 'Compile Remove="Diagnostics\\DeveloperTraceLog.cs"')
     throw 'Release diagnostics exclusion is missing.'
 }
 if ($projectText -notmatch 'TRACE_DIAGNOSTICS') { throw 'Debug diagnostic symbol is missing.' }
-if ($projectText -notmatch '<Version>3\.1\.4</Version>') { throw 'Project version is not 3.1.4.' }
+if ($projectText -notmatch '<Version>3\.1\.6</Version>') { throw 'Project version is not 3.1.6.' }
 
 $source = Get-ChildItem $root -Recurse -Filter *.cs | Where-Object { $_.FullName -notmatch '[\\/](tests|obj|bin)[\\/]' } | Get-Content -Raw -Encoding UTF8
 if ($source -match 'PySide6|PyInstaller') { throw 'Python runtime reference found in C# sources.' }
@@ -49,11 +49,11 @@ if ($mainXaml -notmatch 'controls:GlassCalendar') { throw 'Dedicated calendar is
 if ($mainXaml -match '<Calendar\s') { throw 'OS calendar template returned to the widget.' }
 if ($mainXaml -notmatch 'controls:ClockText' -or $mainCode -notmatch 'PeriodFontSize') { throw 'Measured clock with small AM/PM is missing.' }
 if ($settingsCode -notmatch 'WeightCalendar') { throw 'Typography weight editor is missing.' }
-if ($configCode -notmatch 'schema_version = 13') { throw 'Configuration schema is not version 13.' }
+if ($configCode -notmatch 'schema_version = 14') { throw 'Configuration schema is not version 14.' }
 
 if ($mainXaml -match '<Viewbox') { throw 'Transform-based widget text scaling returned.' }
 if ($mainCode -notmatch 'ApplyLayoutScale') { throw 'Final-size text layout is missing.' }
-if ($settingsXaml -notmatch 'VisibleDDayCountCombo') { throw 'Visible schedule count is missing.' }
+if ($settingsXaml -notmatch 'VisibleDDayCountInput') { throw 'Visible schedule count is missing.' }
 if ($mainXaml -match '<ScrollViewer') { throw 'Widget content scrolling returned.' }
 if ($settingsCode -notmatch 'ResetPresentation') { throw 'Schedule-preserving reset is missing.' }
 
@@ -87,7 +87,7 @@ if ($Configuration -eq 'Release') {
     if (-not (Test-Path $releaseExe)) { throw 'Release executable was not found.' }
     $assembly = [Reflection.Assembly]::ReflectionOnlyLoadFrom($releaseExe)
     if ($assembly.GetType('DDay3.Diagnostics.DeveloperTraceLog', $false)) { throw 'Log backend is present in Release.' }
-    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($releaseExe).FileVersion -ne '3.1.4.0') { throw 'Unexpected executable version.' }
+    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($releaseExe).FileVersion -ne '3.1.6.0') { throw 'Unexpected executable version.' }
 }
 
 Write-Host "[OK] D-Day 3 source verification passed ($Configuration)."

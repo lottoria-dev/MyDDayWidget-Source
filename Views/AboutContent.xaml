@@ -1,0 +1,14 @@
+<UserControl x:Class="DDay3.Views.AboutContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel MaxWidth="380" HorizontalAlignment="Center">
+        <Image Source="/Assets/DDay3.png" Width="86" Height="86" Margin="0,0,0,7"/>
+        <TextBlock Text="D-Day 3" FontSize="25" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+        <TextBlock x:Name="VersionText" Foreground="{DynamicResource SecondaryTextBrush}"
+                   HorizontalAlignment="Center" Margin="0,3,0,12"/>
+        <TextBlock Text="일정·시계·음력·달력을 나만의 글꼴과 유리 패널로 표시하는 Windows용 D-Day 위젯입니다."
+                   TextWrapping="Wrap" TextAlignment="Center"/>
+        <TextBlock Text="© 2026 MathTime · Freeware" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+        <Button Content="https://mathtime.kr/?page=dday" Click="Website_OnClick" Margin="0,7,0,0"/>
+    </StackPanel>
+</UserControl>

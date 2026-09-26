@@ -5,8 +5,10 @@ namespace DDay3.Services
     // Screen coordinates: zero is above, angles increase clockwise.
     internal static class GlassLighting
     {
-        internal static int NormalizeDepth(int value) { return Math.Max(-100, Math.Min(100, value)); }
-        internal static double ReliefAmount(int value) { return Math.Abs(NormalizeDepth(value)) / 100.0; }
+        internal static int NormalizeDepth(int value, bool background = false)
+        { return Math.Max(-100, Math.Min(background ? 200 : 100, value)); }
+        internal static double ReliefAmount(int value, bool background = false)
+        { return Math.Abs(NormalizeDepth(value, background)) / 100.0; }
         // Concave surfaces face the light on the opposite shoulder. The light itself never moves.
         internal static double HighlightDirection(double angle, int depth)
         { return NormalizeDirection(angle + (depth < 0 ? 180 : 0)); }

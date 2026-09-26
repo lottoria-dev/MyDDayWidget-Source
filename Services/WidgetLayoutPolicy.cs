@@ -6,6 +6,15 @@ namespace DDay3.Services
     // A single scale for the complete widget, independent of individual font sizes.
     internal static class WidgetLayoutPolicy
     {
+        internal const double ScheduleSidePadding = 24;
+
+        internal static double ScheduleMinimumWidth(double detailWidth, double titlePoints)
+        {
+            // Outer surface, content margin, capsule border and title/value gap use 60 DIPs.
+            return Math.Ceiling(Math.Max(0, detailWidth) + Math.Max(110, titlePoints * 5)
+                + 60 + ScheduleSidePadding * 2);
+        }
+
         internal static double MinimumReadableWidth(AppSettings settings, double designWidth)
         {
             double smallestPoints = Math.Min(settings.SizeTime, settings.SizeDate);
