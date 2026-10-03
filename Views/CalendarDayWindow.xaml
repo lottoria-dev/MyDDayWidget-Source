@@ -1,0 +1,27 @@
+<Window x:Class="DDay3.Views.CalendarDayWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="일정에서 D-Day 등록" Width="480" Height="420" MinWidth="420" MinHeight="360" WindowStartupLocation="CenterOwner"
+ Background="{DynamicResource WindowVeilBrush}" Foreground="{DynamicResource PrimaryTextBrush}" FontFamily="Segoe UI, Malgun Gothic" FontSize="13">
+ <Grid Margin="18"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <TextBlock x:Name="DateText" FontSize="20" FontWeight="SemiBold"/>
+  <TextBlock Grid.Row="1" x:Name="StatusText" TextWrapping="Wrap" Margin="0,8" AutomationProperties.LiveSetting="Polite"/>
+  <ListBox Grid.Row="2" x:Name="EventList" HorizontalContentAlignment="Stretch" Background="#EFFFFFFF" BorderThickness="0" Padding="6">
+   <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="3,7">
+    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanImport}" HorizontalContentAlignment="Stretch">
+     <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="14"/>
+    </CheckBox>
+    <TextBlock Text="이미 등록됨" FontSize="11" Margin="22,3,0,0" Foreground="{DynamicResource SecondaryTextBrush}">
+     <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/>
+      <Style.Triggers><DataTrigger Binding="{Binding AlreadyImported}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+     </Style></TextBlock.Style>
+    </TextBlock>
+   </StackPanel></DataTemplate></ListBox.ItemTemplate>
+  </ListBox>
+  <TextBlock Grid.Row="3" Text="제목을 선택해 D-Day로 등록하세요. 여러 개를 함께 선택할 수 있습니다. D-Day는 일정의 시작 날짜로 저장됩니다." TextWrapping="Wrap" Margin="0,12,0,8" Foreground="{DynamicResource SecondaryTextBrush}"/>
+  <WrapPanel Grid.Row="4" HorizontalAlignment="Right">
+   <Button Content="직접 입력" Click="Manual_OnClick"/>
+   <Button Content="취소" IsCancel="True"/>
+   <Button x:Name="ImportButton" Content="D-Day 등록" Click="Import_OnClick" IsDefault="True"/>
+  </WrapPanel>
+ </Grid>
+</Window>

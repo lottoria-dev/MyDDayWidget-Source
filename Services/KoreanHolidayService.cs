@@ -66,7 +66,7 @@ namespace DDay3.Services
                 DateTime now = DateTime.UtcNow;
                 if (!force && hasData && File.GetLastWriteTimeUtc(CachePath(year)) <= now &&
                     now - File.GetLastWriteTimeUtc(CachePath(year)) < TimeSpan.FromDays(7))
-                    return Result(true, true, year + "년 " + Label + " · 저장 자료", year + " " + EnglishLabel + " · cached data");
+                    return Result(true, true, year + "년 " + Label, year + " " + EnglishLabel);
                 if (string.IsNullOrWhiteSpace(key))
                     return Result(false, hasData, hasData ? "인증키 없음 · 저장 자료 표시" : Label + " 미연동 · 설정에서 인증키 입력",
                         hasData ? "No API key · using cached " + EnglishLabel : EnglishLabel + " unavailable · enter an API key in Settings");

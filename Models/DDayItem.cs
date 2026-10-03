@@ -6,10 +6,11 @@ namespace DDay3.Models
     {
         internal string Title { get; set; }
         internal DateTime Date { get; set; }
+        internal string CalendarEventKey { get; set; } = "";
 
         internal DDayItem Clone()
         {
-            return new DDayItem { Title = Title, Date = Date.Date };
+            return new DDayItem { Title = Title, Date = Date.Date, CalendarEventKey = CalendarEventKey };
         }
     }
 }

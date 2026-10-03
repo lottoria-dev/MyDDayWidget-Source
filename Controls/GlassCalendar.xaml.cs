@@ -25,6 +25,9 @@ namespace DDay3.Controls
         private Dictionary<DateTime, string[]> holidays = new Dictionary<DateTime, string[]>();
         private Dictionary<DateTime, string[]> solarTerms = new Dictionary<DateTime, string[]>();
         private string holidayStatus = string.Empty;
+        private string calendarStatus = string.Empty;
+        private Dictionary<DateTime, CalendarEvent[]> calendarEvents = new Dictionary<DateTime, CalendarEvent[]>();
+        internal bool OpenEventsOnSingleClick { get; set; }
         private DayOfWeek firstDayOfWeek = DayOfWeek.Sunday;
         private DateTime month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         private bool english;
@@ -121,6 +124,15 @@ namespace DDay3.Controls
 
         internal void RefreshToday() { RenderMonth(); }
 
+        internal void SetCalendarEvents(IEnumerable<CalendarEvent> events, string status)
+        {
+            var entries = events.ToArray();
+            calendarEvents = CalendarMonth.GetDays(month, firstDayOfWeek).Where(d => d.HasValue)
+                .Select(d => d.Value).ToDictionary(d => d, d => entries.Where(e => e.OccursOn(d)).ToArray());
+            calendarStatus = status ?? "";
+            RenderMonth();
+        }
+
         internal void SetPublicDates(IEnumerable<HolidayEntry> entries, IEnumerable<HolidayEntry> terms, string status)
         {
             holidays = entries.GroupBy(x => x.Date.Date).ToDictionary(x => x.Key,
@@ -142,8 +154,10 @@ namespace DDay3.Controls
             if (DaysGrid == null) return;
             MonthButton.Content = english ? month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)
                 : month.ToString("yyyy년 M월", CultureInfo.InvariantCulture);
-            MonthButton.ToolTip = (english ? "Choose year and month" : "연도·월 직접 선택") +
-                (holidayStatus.Length == 0 ? "" : "\n" + holidayStatus);
+            string monthHint = string.Join("\n", new[] { english ? "Choose year and month" : "연도·월 직접 선택", holidayStatus, calendarStatus }
+                .Where(text => !string.IsNullOrWhiteSpace(text)));
+            MonthButton.ToolTip = new ToolTip { Content = monthHint,
+                Style = (Style)Resources["CalendarDateToolTip"], IsHitTestVisible = false };
             PreviousButton.IsEnabled = month.Year != 1 || month.Month != 1;
             NextButton.IsEnabled = month.Year != 9999 || month.Month != 12;
             string[] weekdays = english ? new[] { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
@@ -162,7 +176,8 @@ namespace DDay3.Controls
                 content.Children.Add(new TextBlock { Text = date.Day.ToString(CultureInfo.InvariantCulture),
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                     Foreground = DayBrush(date.DayOfWeek, holidays.ContainsKey(date)) });
-                if (annotations.Contains(date) || solarTerms.ContainsKey(date))
+                CalendarEvent[] calendarEntries;
+                if (annotations.Contains(date) || solarTerms.ContainsKey(date) || (calendarEvents.TryGetValue(date, out calendarEntries) && calendarEntries.Length > 0))
                     content.Children.Add(new Ellipse { Width = 4, Height = 4, Fill = new SolidColorBrush(accent),
                         HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom,
                         Margin = new Thickness(0, 0, 0, -3) });
@@ -202,6 +217,13 @@ namespace DDay3.Controls
             solarTerms.TryGetValue(date.Date, out termNames);
             string[] names = (holidayNames ?? new string[0]).Concat(termNames ?? new string[0]).Distinct().ToArray();
             if (names.Length > 0) description += "\n" + string.Join(" · ", names);
+            CalendarEvent[] calendarEntries;
+            if (calendarEvents.TryGetValue(date.Date, out calendarEntries) && calendarEntries.Length > 0)
+            {
+                description += "\n\n" + string.Join("\n", calendarEntries.Take(6).Select(e => e.Title));
+                if (calendarEntries.Length > 6) description += "\n" + (english ? "More: " : "외 ") + (calendarEntries.Length - 6);
+                description += english ? "\nClick to choose events" : "\n클릭하여 일정 선택";
+            }
             TextBlock text = new TextBlock { Text = description, TextWrapping = TextWrapping.Wrap, MaxWidth = 300 };
             return new ToolTip
             {
@@ -227,11 +249,13 @@ namespace DDay3.Controls
                 day.BorderThickness = new Thickness(selected ? 1 : 0);
             }
             e.Handled = true;
+            if (OpenEventsOnSingleClick) DateActivated?.Invoke(this, new CalendarDateEventArgs(SelectedDate.Value));
         }
 
         private void Day_OnDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton != MouseButton.Left) return;
+            if (OpenEventsOnSingleClick) { e.Handled = true; return; }
             SelectedDate = (DateTime)((Button)sender).Tag;
             e.Handled = true;
             EventHandler<CalendarDateEventArgs> handler = DateActivated;

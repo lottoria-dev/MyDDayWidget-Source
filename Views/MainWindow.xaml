@@ -14,7 +14,8 @@
         UseLayoutRounding="True" SnapsToDevicePixels="True"
         TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Grayscale">
     <Grid>
-        <Grid x:Name="Root" Width="350" HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid x:Name="Root" Width="350" HorizontalAlignment="Left" VerticalAlignment="Top"
+              MouseEnter="Root_OnMouseEnter" MouseLeave="Root_OnMouseLeave">
           <Grid x:Name="SurfaceInset" Margin="6">
         <controls:GlassPanel x:Name="GlassSurface" CornerRadius="28" BorderThickness="0.8">
             <Grid ClipToBounds="True">
@@ -64,8 +65,8 @@
                 </Grid>
             </Grid>
         </controls:GlassPanel>
-
-
+        <controls:GlassHoverOutline x:Name="HoverOutline"
+            CornerRadius="{Binding CornerRadius, ElementName=GlassSurface}"/>
           </Grid>
         </Grid>
         <primitives:Thumb x:Name="ResizeGrip" HorizontalAlignment="Right" VerticalAlignment="Bottom"

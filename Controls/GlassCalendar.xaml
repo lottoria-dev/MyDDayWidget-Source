@@ -6,6 +6,7 @@
              TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="Grayscale">
     <UserControl.Resources>
         <Style x:Key="CalendarDateToolTip" TargetType="ToolTip">
+            <Setter Property="IsHitTestVisible" Value="False"/>
             <Setter Property="Background" Value="#FFF5F8FB"/>
             <Setter Property="Foreground" Value="#FF203042"/>
             <Setter Property="FontFamily" Value="Malgun Gothic"/>

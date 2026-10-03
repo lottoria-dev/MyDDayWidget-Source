@@ -13,6 +13,7 @@ namespace DDay3.Models
         internal double ClockPanelOpacity { get; set; }
         internal double DDayPanelOpacity { get; set; }
         internal bool ShowPanelOutline { get; set; }
+        internal bool ShowHoverReflection { get; set; }
         internal double TextOpacity { get; set; }
         internal bool Topmost { get; set; }
         internal bool AutoStart { get; set; }
@@ -86,6 +87,7 @@ namespace DDay3.Models
                 ClockPanelOpacity = 0.60,
                 DDayPanelOpacity = 0.60,
                 ShowPanelOutline = true,
+                ShowHoverReflection = true,
                 TextOpacity = 1.0,
                 Topmost = false,
                 AutoStart = false,

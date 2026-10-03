@@ -132,8 +132,11 @@
                                     <Button Grid.Column="1" Content="클리어 기본 적용" Click="CleanDesign_OnClick"
                                         ToolTip="무채색 유리·은은한 깊이·밝은 글자색 적용. 글꼴·크기·일정은 유지합니다."/>
                                 </Grid>
-                                <CheckBox x:Name="PanelOutlineCheck" Content="전체 배경에 얇은 흰색 경계선 표시" Margin="0,8,0,0"
-                                    ToolTip="바탕화면과 위젯의 경계를 구분합니다. 배경 농도·색조와 별도로 표시합니다."
+                                <CheckBox x:Name="PanelOutlineCheck" Content="모든 유리판에 은은한 흰색 경계선 표시" Margin="0,8,0,0"
+                                    ToolTip="전체 배경·시계·D-Day에 같은 농도의 얇은 경계를 표시합니다. 끄더라도 깊이 표현은 유지합니다."
+                                    Checked="PanelOutline_OnChanged" Unchecked="PanelOutline_OnChanged"/>
+                                <CheckBox x:Name="HoverReflectionCheck" Content="마우스 오버 시 외곽 반사광" Margin="0,5,0,0"
+                                    ToolTip="평상시 경계선과 별도로 작동합니다. 효과를 끄려면 이 항목을 해제하세요."
                                     Checked="PanelOutline_OnChanged" Unchecked="PanelOutline_OnChanged"/>
                                 <UniformGrid Columns="3" Margin="0,10,0,8">
                                     <StackPanel HorizontalAlignment="Center">
@@ -218,7 +221,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                                         <TextBlock Text="공통 광원 방향·색조" FontWeight="SemiBold"/>
-                                        <TextBlock Text="다이얼의 점이 빛이 들어오는 방향입니다. 반사광과 반대쪽 그림자가 함께 이동합니다." TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                        <TextBlock Text="다이얼의 점이 빛이 들어오는 방향입니다. 양각은 모서리, 음각은 안쪽 면이 밝아지며 깊이에 따라 반사광의 폭이 달라집니다." TextWrapping="Wrap" Margin="0,5,0,0"/>
                                         <TextBlock Text="위 0° · 오른쪽 90° · 아래 180° · 왼쪽 270°" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Grid>
@@ -274,9 +277,14 @@
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
-                <TabItem Header="공공데이터">
+                <TabItem Header="캘린더 연동">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="10">
+                            <Border Style="{StaticResource SettingsSection}"><StackPanel>
+                                <TextBlock Text="일정 파일 가져오기" FontSize="15" FontWeight="SemiBold"/>
+                                <TextBlock Text="iCal URL을 구독하거나 .ics 파일을 가져와 제목과 날짜를 표시합니다. URL은 지정한 주기로 갱신됩니다. 달력의 날짜를 눌러 일정을 D-Day로 등록하세요." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Margin="3,6"/>
+                                <Button Content="캘린더 파일·URL 관리…" Click="IcsCalendar_OnClick" HorizontalAlignment="Left"/>
+                            </StackPanel></Border>
                             <Border Style="{StaticResource SettingsSection}"><StackPanel>
                                 <TextBlock Text="한국 공휴일 연동" FontSize="15" FontWeight="SemiBold"/>
                                 <CheckBox x:Name="ShowKoreanHolidaysCheck" Content="달력에 한국 공휴일 표시"/>

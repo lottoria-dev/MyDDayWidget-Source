@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$version = '3.1.6'
+$version = '3.5.0'
 & (Join-Path $PSScriptRoot 'verify-source.ps1') -Configuration Release
 $exe = Join-Path $root 'bin\x64\Release\DDay3.exe'
 $artifacts = Join-Path $root 'artifacts'
@@ -11,8 +11,12 @@ try {
     $portable = Join-Path $stage 'portable'
     New-Item $portable -ItemType Directory | Out-Null
     Copy-Item $exe (Join-Path $portable 'DDay3.exe')
-    if (Test-Path ($exe + '.config')) { Copy-Item ($exe + '.config') (Join-Path $portable 'DDay3.exe.config') }
-    foreach ($name in @('README.md', 'LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'RELEASE_NOTES.md')) {
+    foreach ($name in @('Ical.Net.dll', 'NodaTime.dll', 'System.Runtime.CompilerServices.Unsafe.dll')) {
+        Copy-Item (Join-Path (Split-Path $exe) $name) (Join-Path $portable $name)
+    }
+    Copy-Item (Join-Path $root 'licenses') (Join-Path $portable 'licenses') -Recurse
+    Copy-Item ($exe + '.config') (Join-Path $portable 'DDay3.exe.config')
+    foreach ($name in @('README.md', 'LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'RELEASE_NOTES.md', 'ICS_CALENDAR_SETUP.md', 'PRIVACY.md')) {
         Copy-Item (Join-Path $root $name) (Join-Path $portable $name)
     }
     $zipName = "DDay3-v$version-win-x64.zip"

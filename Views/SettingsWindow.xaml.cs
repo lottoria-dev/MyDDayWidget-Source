@@ -23,6 +23,7 @@ namespace DDay3.Views
         {
             public string Title { get; set; }
             public DateTime Date { get; set; }
+            public string CalendarEventKey { get; set; } = "";
         }
 
         private sealed class TypographyEditor
@@ -201,7 +202,7 @@ namespace DDay3.Views
                 working = value.Clone();
                 rows.Clear();
                 foreach (DDayItem item in working.Items)
-                    rows.Add(new DDayEditorRow { Title = item.Title, Date = item.Date });
+                    rows.Add(new DDayEditorRow { Title = item.Title, Date = item.Date, CalendarEventKey = item.CalendarEventKey });
 
                 SelectByTag(TimeFormatCombo, working.TimeFormat);
                 SelectByTag(DateFormatCombo, working.DateFormat);
@@ -224,6 +225,7 @@ namespace DDay3.Views
                 ClockOpacityDial.Value = working.ClockPanelOpacity * 100.0;
                 DDayOpacityDial.Value = working.DDayPanelOpacity * 100.0;
                 PanelOutlineCheck.IsChecked = working.ShowPanelOutline;
+                HoverReflectionCheck.IsChecked = working.ShowHoverReflection;
                 TextOpacitySlider.Value = working.TextOpacity * 100.0;
                 GlassStrengthSlider.Value = Math.Max(10.0, working.GlassStrength * 100.0);
                 selectedGlassColor = working.GlassLightColor;
@@ -264,7 +266,7 @@ namespace DDay3.Views
             {
                 string title = (row.Title ?? string.Empty).Trim();
                 if (title.Length == 0) throw new InvalidOperationException("D-Day 제목이 비어 있습니다.");
-                value.Items.Add(new DDayItem { Title = title, Date = row.Date.Date });
+                value.Items.Add(new DDayItem { Title = title, Date = row.Date.Date, CalendarEventKey = row.CalendarEventKey });
             }
             value.TimeFormat = SelectedTag(TimeFormatCombo, "24h");
             value.DateFormat = SelectedTag(DateFormatCombo, "yyyy-mm-dd");
@@ -287,6 +289,7 @@ namespace DDay3.Views
             value.ClockPanelOpacity = ClockOpacityDial.Value / 100.0;
             value.DDayPanelOpacity = DDayOpacityDial.Value / 100.0;
             value.ShowPanelOutline = PanelOutlineCheck.IsChecked == true;
+            value.ShowHoverReflection = HoverReflectionCheck.IsChecked == true;
             value.TextOpacity = TextOpacitySlider.Value / 100.0;
             value.GlassStrength = GlassStrengthSlider.Value / 100.0;
             value.GlassLightColor = selectedGlassColor;
@@ -374,7 +377,7 @@ namespace DDay3.Views
         {
             if (!TryCommitListEdits()) return;
             object selected = DDayGrid.SelectedItem;
-            var entries = rows.Select(row => new DDayItem { Title = row.Title, Date = row.Date }).ToList();
+            var entries = rows.Select(row => new DDayItem { Title = row.Title, Date = row.Date, CalendarEventKey = row.CalendarEventKey }).ToList();
             var map = entries.Select((item, index) => new { item, row = rows[index] }).ToDictionary(x => x.item, x => x.row);
             var ordered = ScheduleOrdering.Sort(entries, SelectedTag(DDaySortCombo, "date_asc"), DateTime.Today);
             rows.Clear();
@@ -485,6 +488,11 @@ namespace DDay3.Views
                 throw new InvalidOperationException("편집 중인 일정의 날짜와 제목을 확인해 주세요.");
         }
 
+        private void IcsCalendar_OnClick(object sender, RoutedEventArgs e)
+        {
+            new IcsCalendarWindow(AppServices.IcsCalendars) { Owner = this }.ShowDialog();
+        }
+
         private void ResetDefaults_OnClick(object sender, RoutedEventArgs e)
         {
             MessageBoxResult answer = MessageBox.Show(this,
@@ -497,7 +505,7 @@ namespace DDay3.Views
                 AppSettings draft = working.Clone();
                 draft.Items.Clear();
                 foreach (DDayEditorRow row in rows)
-                    draft.Items.Add(new DDayItem { Title = row.Title, Date = row.Date });
+                    draft.Items.Add(new DDayItem { Title = row.Title, Date = row.Date, CalendarEventKey = row.CalendarEventKey });
                 PopulateFromSettings(draft.ResetPresentation());
                 AppServices.Log.Info("settings.defaults.preview", "itemsPreserved=" + rows.Count);
             }
@@ -614,7 +622,7 @@ namespace DDay3.Views
             if (isPopulating || owner == null) return;
             owner.PreviewGlassRelief(LightDirectionDial.Value,
                 (int)PanelDepthSlider.Value, (int)ClockDepthSlider.Value, (int)DDayDepthSlider.Value,
-                PanelOutlineCheck.IsChecked == true);
+                PanelOutlineCheck.IsChecked == true, HoverReflectionCheck.IsChecked == true);
         }
 
         private void PanelOutline_OnChanged(object sender, RoutedEventArgs e)
@@ -635,6 +643,7 @@ namespace DDay3.Views
                 ClockOpacityDial.Value = clean.ClockPanelOpacity * 100;
                 DDayOpacityDial.Value = clean.DDayPanelOpacity * 100;
                 PanelOutlineCheck.IsChecked = clean.ShowPanelOutline;
+                HoverReflectionCheck.IsChecked = clean.ShowHoverReflection;
                 PanelDepthSlider.Value = clean.PanelDepth;
                 ClockDepthSlider.Value = clean.ClockPanelDepth;
                 DDayDepthSlider.Value = clean.DDayPanelDepth;
@@ -683,6 +692,7 @@ namespace DDay3.Views
             preview.ClockPanelOpacity = ClockOpacityDial.Value / 100.0;
             preview.DDayPanelOpacity = DDayOpacityDial.Value / 100.0;
             preview.ShowPanelOutline = PanelOutlineCheck.IsChecked == true;
+            preview.ShowHoverReflection = HoverReflectionCheck.IsChecked == true;
             preview.TextOpacity = TextOpacitySlider.Value / 100.0;
             preview.GlassStrength = GlassStrengthSlider.Value / 100.0;
             preview.GlassLightColor = selectedGlassColor;

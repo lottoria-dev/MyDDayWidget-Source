@@ -201,6 +201,7 @@ namespace DDay3.Services
                 settings.ClockPanelOpacity = ReadDouble(window, "clock_panel_opacity", settings.PanelOpacity, 0.05, 1.00, warnings);
                 settings.DDayPanelOpacity = ReadDouble(window, "dday_panel_opacity", settings.PanelOpacity, 0.05, 1.00, warnings);
                 settings.ShowPanelOutline = ReadBool(window, "show_panel_outline", settings.ShowPanelOutline, warnings);
+                settings.ShowHoverReflection = ReadBool(window, "show_hover_reflection", settings.ShowHoverReflection, warnings);
                 settings.TextOpacity = ReadDouble(window, "text_opacity", 1.0, 0.40, 1.00, warnings);
                 settings.Topmost = ReadBool(window, "topmost", settings.Topmost, warnings);
                 // 3.0.0-dev.2부터 유리판은 항상 사용합니다. 이전 INI의 false 값은 무시합니다.
@@ -276,7 +277,11 @@ namespace DDay3.Services
                         warnings.Add(section.Key + " 날짜가 잘못되어 제외했습니다.");
                         continue;
                     }
-                    settings.Items.Add(new DDayItem { Title = CleanTitle(title), Date = date.Date });
+                    string googleKey;
+                    if (!section.Value.TryGetValue("calendar_event_key", out googleKey))
+                        section.Value.TryGetValue("google_event_key", out googleKey);
+                    settings.Items.Add(new DDayItem { Title = CleanTitle(title), Date = date.Date,
+                        CalendarEventKey = CalendarEvent.NormalizeKey(googleKey) });
                 }
                 if (settings.Items.Count == 0)
                 {
@@ -389,7 +394,7 @@ namespace DDay3.Services
         {
             StringBuilder text = new StringBuilder();
             text.AppendLine("[Meta]");
-            text.AppendLine("schema_version = 14");
+            text.AppendLine("schema_version = 15");
             text.AppendLine("saved_at = " + DateTimeOffset.Now.ToString("o"));
             text.AppendLine();
             text.AppendLine("[Window]");
@@ -402,6 +407,7 @@ namespace DDay3.Services
             Write(text, "clock_panel_opacity", value.ClockPanelOpacity.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "dday_panel_opacity", value.DDayPanelOpacity.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "show_panel_outline", value.ShowPanelOutline);
+            Write(text, "show_hover_reflection", value.ShowHoverReflection);
             Write(text, "text_opacity", value.TextOpacity.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "topmost", value.Topmost);
             Write(text, "use_glass_background", true);
@@ -459,6 +465,8 @@ namespace DDay3.Services
                 text.AppendLine("[DDay-" + (i + 1) + "]");
                 Write(text, "title", CleanTitle(value.Items[i].Title));
                 Write(text, "date", value.Items[i].Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                string googleKey = CalendarEvent.NormalizeKey(value.Items[i].CalendarEventKey);
+                if (googleKey.Length > 0) Write(text, "calendar_event_key", googleKey);
             }
             return text.ToString();
         }
@@ -513,6 +521,7 @@ namespace DDay3.Services
             {
                 item.Title = CleanTitle(item.Title);
                 item.Date = item.Date.Date;
+                item.CalendarEventKey = CalendarEvent.NormalizeKey(item.CalendarEventKey);
             }
         }
 

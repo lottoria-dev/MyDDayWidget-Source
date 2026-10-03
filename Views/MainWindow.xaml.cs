@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Threading;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -41,11 +43,18 @@ namespace DDay3.Views
         private double currentScale = 1;
         private DateTime lastCountDate = DateTime.MinValue;
         private int holidayRequestVersion;
+        private CancellationTokenSource calendarRequest;
+        private List<CalendarEvent> calendarMonthEvents = new List<CalendarEvent>();
+        private bool calendarDialogOpen;
 
         internal MainWindow(AppSettings settings, ConfigLoadResult loadResult)
         {
             InitializeComponent();
-            CalendarView.DisplayMonthChanged += delegate { RefreshCalendarHolidays(); };
+            HoverOutline.HoverProbe = IsPointerInsideWidget;
+            Root.AddHandler(ToolTipService.ToolTipOpeningEvent, new ToolTipEventHandler(Root_OnToolTipTransition), true);
+            Root.AddHandler(ToolTipService.ToolTipClosingEvent, new ToolTipEventHandler(Root_OnToolTipTransition), true);
+            CalendarView.DisplayMonthChanged += delegate { RefreshCalendarHolidays(); RefreshIcsCalendar(true); };
+            AppServices.IcsCalendars.Changed += IcsFiles_OnChanged;
             this.settings = settings;
             configuration = AppServices.Configuration;
             initialLoadResult = loadResult;
@@ -77,12 +86,43 @@ namespace DDay3.Views
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            HoverOutline.IsHovering = IsPointerInsideWidget();
             UpdateClockAndCounts(true);
             UpdateDesignSize();
             RefreshCalendarHolidays();
+            RefreshIcsCalendar(true);
             AppServices.Log.Info("window.loaded", GeometrySummary() +
                 ", monitors=" + Forms.Screen.AllScreens.Length);
             ShowConfigurationNotice();
+        }
+
+        private void Root_OnMouseEnter(object sender, MouseEventArgs e)
+        { HoverOutline.IsHovering = true; }
+        private void Root_OnMouseLeave(object sender, MouseEventArgs e)
+        { HoverOutline.IsHovering = IsPointerInsideWidget(); }
+
+        private void Root_OnToolTipTransition(object sender, ToolTipEventArgs e)
+        {
+            bool opening = e.RoutedEvent == ToolTipService.ToolTipOpeningEvent;
+            // Let the tooltip finish creating/removing its popup source, then commit
+            // a fresh outline frame without restarting its phase or fading it out.
+            Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+            {
+                if (quitting || !IsLoaded) return;
+                HoverOutline.RefreshPresentation();
+                if (AppServices.Log != null && AppServices.Log.IsEnabled)
+                    AppServices.Log.Info("hover.tooltip", (opening ? "opening" : "closing")
+                        + ", rendering=" + HoverOutline.IsAnimating + ", pointer=" + HoverOutline.IsHovering
+                        + ", frames=" + HoverOutline.RenderedFrameCount);
+            }));
+        }
+
+        private bool IsPointerInsideWidget()
+        {
+            if (quitting || !IsVisible || !Root.IsLoaded || WindowState == WindowState.Minimized) return false;
+            var cursor = Forms.Cursor.Position;
+            Point local = Root.PointFromScreen(new Point(cursor.X, cursor.Y));
+            return new Rect(Root.RenderSize).Contains(local);
         }
 
         private void ApplySettings(bool preserveScale = false, bool resetCarousel = true)
@@ -114,7 +154,7 @@ namespace DDay3.Views
             UpdateCalendarMarks();
             UpdateClockAndCounts(true);
             UpdateDesignSize(preserveScale ? (double?)previousScale : null);
-            if (IsLoaded) RefreshCalendarHolidays();
+            if (IsLoaded) { RefreshCalendarHolidays(); RefreshIcsCalendar(true); }
         }
 
         // Brush alpha changes the surfaces only. Never fade the parent Window.
@@ -131,7 +171,7 @@ namespace DDay3.Views
             ApplySettings(true, false);
         }
 
-        internal void PreviewGlassRelief(double direction, int background, int clock, int dday, bool showPanelOutline)
+        internal void PreviewGlassRelief(double direction, int background, int clock, int dday, bool showPanelOutline, bool showHoverReflection)
         {
             if (previewOriginal == null)
             {
@@ -144,6 +184,8 @@ namespace DDay3.Views
             settings.ClockPanelDepth = GlassLighting.NormalizeDepth(clock);
             settings.DDayPanelDepth = GlassLighting.NormalizeDepth(dday);
             settings.ShowPanelOutline = showPanelOutline;
+            settings.ShowHoverReflection = showHoverReflection;
+            HoverOutline.IsEffectEnabled = showHoverReflection;
             // Pointer motion changes surface drawing only: no typography layout, calendar
             // rebuilding, clock restart, or public-data requests while turning the dial.
             ApplyPanelLighting(GlassSurface, settings, settings.PanelOpacity, settings.PanelDepth, GlassPanel.BackgroundRadius, true);
@@ -165,13 +207,14 @@ namespace DDay3.Views
         private static void ApplyPanelLighting(GlassPanel panel, AppSettings value, double opacity, int depth, double referenceRadius, bool background = false)
         {
             if (panel == null) return;
-            panel.ShowWhiteOutline = background && value.ShowPanelOutline;
+            panel.ShowWhiteOutline = value.ShowPanelOutline;
             panel.SetLighting(LiquidGlassTheme.ParseColor(value.GlassLightColor, Colors.LightBlue),
                 value.GlassLightDirection, opacity, depth, referenceRadius, background);
         }
 
         private void ApplySurfaceSettings(AppSettings value)
         {
+            HoverOutline.IsEffectEnabled = value.ShowHoverReflection;
             displaySettings = TextColorModeService.Resolve(value);
             Opacity = 1.0;
             GlassSurface.Background = LiquidGlassTheme.CreatePanelBrush(value);
@@ -621,6 +664,8 @@ namespace DDay3.Views
         private void QuitApplication()
         {
             quitting = true;
+            AppServices.IcsCalendars.Changed -= IcsFiles_OnChanged;
+            if (calendarRequest != null) calendarRequest.Cancel();
             SaveState(false);
             clockTimer.Stop();
             if (trayIcon != null)
@@ -820,7 +865,83 @@ namespace DDay3.Views
 
         private void CalendarView_OnDateActivated(object sender, CalendarDateEventArgs e)
         {
-            OpenSettings(e.Date);
+            if (AppServices.IcsCalendars.Enabled) OpenCalendarDay(e.Date);
+            else OpenSettings(e.Date);
+        }
+
+        private void IcsFiles_OnChanged(object sender, EventArgs e)
+        {
+            if (Dispatcher.CheckAccess()) RefreshIcsCalendar(true);
+            else Dispatcher.BeginInvoke(new Action(() => RefreshIcsCalendar(true)));
+        }
+
+        private async void RefreshIcsCalendar(bool clear = false)
+        {
+            if (quitting) return;
+            if (calendarRequest != null) { calendarRequest.Cancel(); calendarRequest.Dispose(); calendarRequest = null; }
+            var service = AppServices.IcsCalendars;
+            CalendarView.OpenEventsOnSingleClick = service.Enabled;
+            if (clear || !service.Enabled)
+            {
+                calendarMonthEvents.Clear(); CalendarView.SetCalendarEvents(calendarMonthEvents, "");
+            }
+            if (!service.Enabled || !settings.ShowCalendar) return;
+            var range = CalendarMonth.GetDays(CalendarView.DisplayDate, settings.WeekStart == "Monday" ? DayOfWeek.Monday : DayOfWeek.Sunday)
+                .Where(d => d.HasValue).Select(d => d.Value).ToArray();
+            var request = new CancellationTokenSource(); calendarRequest = request;
+            var token = request.Token;
+            try
+            {
+                DateTime last = range.Last();
+                var result = await service.Events(range.First(), last == DateTime.MaxValue.Date ? DateTime.MaxValue : last.AddDays(1), token);
+                if (token.IsCancellationRequested || quitting) return;
+                calendarMonthEvents = result;
+                CalendarView.SetCalendarEvents(calendarMonthEvents, "");
+            }
+            catch (OperationCanceledException)
+            {
+                if (!token.IsCancellationRequested && !quitting)
+                    CalendarView.SetCalendarEvents(calendarMonthEvents, "일정 표시가 취소되었습니다.");
+            }
+            catch (Exception ex)
+            {
+                if (!token.IsCancellationRequested && !quitting)
+                    CalendarView.SetCalendarEvents(calendarMonthEvents, "일정 파일을 표시하지 못했습니다. " + ex.Message);
+            }
+        }
+
+        private void OpenCalendarDay(DateTime date)
+        {
+            if (calendarDialogOpen) return;
+            calendarDialogOpen = true;
+            try
+            {
+                if (!AppServices.IcsCalendars.Enabled)
+                {
+                    new IcsCalendarWindow(AppServices.IcsCalendars) { Owner = this }.ShowDialog();
+                    if (!AppServices.IcsCalendars.Enabled) return;
+                }
+                var dialog = new CalendarDayWindow(AppServices.IcsCalendars, date, settings.Items, settings.DateFormat) { Owner = this };
+                if (dialog.ShowDialog() != true) return;
+                if (dialog.ManualEntryRequested) { OpenSettings(date); return; }
+                SyncGeometry();
+                var next = settings.Clone();
+                int firstImported = next.Items.Count;
+                foreach (var item in dialog.SelectedEvents)
+                    if (!next.Items.Any(existing => existing.CalendarEventKey == item.Key))
+                        next.Items.Add(new DDayItem { Title = item.Title, Date = item.Start.Date, CalendarEventKey = item.Key });
+                if (next.Items.Count == firstImported) return;
+                ConfigSaveResult saved = configuration.Save(next, true);
+                if (!saved.Success)
+                {
+                    MessageBox.Show(this, saved.Message, "D-Day 등록 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                settings = next; ApplySettings(true); BuildContextMenu();
+                carousel.Move(firstImported, settings.Items.Count);
+                RebuildDDayItems(); UpdateClockAndCounts(true);
+            }
+            finally { calendarDialogOpen = false; }
         }
 
         private void CalendarView_OnDateContextRequested(object sender, CalendarDateEventArgs e)
@@ -832,6 +953,8 @@ namespace DDay3.Views
                 Foreground = (Brush)Application.Current.Resources["PrimaryTextBrush"]
             };
             AddMenuItem(menu, "새 D-Day 추가 (" + date.ToString("yyyy-MM-dd") + ")", delegate { OpenSettings(date); });
+            AddMenuItem(menu, "일정 파일에서 D-Day 추가…", delegate { OpenCalendarDay(date); });
+            AddMenuItem(menu, "캘린더 파일·URL 관리…", delegate { new IcsCalendarWindow(AppServices.IcsCalendars) { Owner = this }.ShowDialog(); });
             menu.Items.Add(new Separator());
             AddMenuItem(menu, "Google 캘린더 열기", delegate
             {
