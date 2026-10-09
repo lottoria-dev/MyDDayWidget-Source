@@ -11,7 +11,7 @@ namespace DDay3
     public partial class App : Application
     {
         internal const string ProductName = "D-Day 3";
-        internal const string Version = "3.5.4";
+        internal const string Version = "3.5.5";
         private Mutex instanceMutex;
 
         protected override void OnStartup(StartupEventArgs e)

@@ -227,7 +227,7 @@ namespace DDay3.Views
             panel.SetLighting(LiquidGlassTheme.ParseColor(value.GlassLightColor, Colors.LightBlue),
                 value.GlassLightDirection, opacity, depth, referenceRadius, background,
                 LiquidGlassTheme.ParseColor(value.GlassRefractionColor, Color.FromRgb(126, 193, 238)), value.GlassRefractionMode,
-                background ? 1.0 : referenceRadius == GlassPanel.ClockRadius ? .65 : .45);
+                background ? 1.0 : referenceRadius == GlassPanel.ClockRadius ? .85 : .7, value.GlassStrength);
         }
 
         private void ApplySurfaceSettings(AppSettings value)

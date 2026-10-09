@@ -15,5 +15,5 @@ if errorlevel 1 (
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\package-release.ps1
 if errorlevel 1 exit /b 1
-echo [OK] artifacts\v3.5.4 - EXE, portable ZIP and SHA-256
+echo [OK] artifacts\v3.5.5 - EXE, portable ZIP and SHA-256
 endlocal

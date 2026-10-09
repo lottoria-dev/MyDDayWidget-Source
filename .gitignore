@@ -25,3 +25,16 @@ oauth-client*.json
 *.zip
 __pycache__/
 *.pyc
+
+# Keep personal review and publishing files out of the public repository.
+AGENTS.md
+VALIDATION.md
+QA_README.md
+RELEASE_CHECKLIST.md
+ROADMAP.md
+GITHUB_UPDATE.md
+tests/
+Roadmap/
+tools/verify-static.py
+tools/configure-google-oauth.ps1
+*.html

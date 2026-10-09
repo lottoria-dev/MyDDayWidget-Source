@@ -236,7 +236,7 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                                         <TextBlock Text="공통 광원 방향" FontWeight="SemiBold"/>
-                                        <TextBlock Text="다이얼의 점이 빛이 들어오는 방향입니다. 양각은 모서리, 음각은 안쪽 면이 밝아지며 깊이에 따라 반사광의 폭이 달라집니다." TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                        <TextBlock Text="다이얼의 점이 빛이 들어오는 방향입니다. 깊이를 키우면 반사광이 넓어지고, 색조 강도를 높이면 표면색과 빛이 선명해집니다." TextWrapping="Wrap" Margin="0,5,0,0"/>
                                         <TextBlock Text="위 0° · 오른쪽 90° · 아래 180° · 왼쪽 270°" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </Grid>
@@ -256,7 +256,7 @@
                                     <ComboBox x:Name="RefractionModeCombo" Grid.Column="1" SelectionChanged="RefractionMode_OnChanged"
                                         AutomationProperties.Name="파스텔 굴절광 강도"/>
                                 </Grid>
-                                <TextBlock Text="표면색은 그대로 두고 모서리의 빛만 바꿉니다. 광원 방향과 양각·음각 깊이에 연동됩니다."
+                                <TextBlock Text="은은하게는 얇고 연한 빛, 선명하게는 더 넓고 또렷한 색의 번짐을 표시합니다. 표면색과 글자는 유지하며 광원 방향과 양각·음각 깊이에 연동됩니다."
                                     TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,5"/>
                                 <WrapPanel x:Name="RefractionColorPanel"/>
                                 <Button x:Name="CustomRefractionColorButton" Content="굴절광 직접 선택" Click="CustomRefractionColor_OnClick"

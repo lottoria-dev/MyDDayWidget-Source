@@ -30,8 +30,8 @@ namespace DDay3.Services
         {
             Color accent = ParseColor(settings.GlassLightColor, Color.FromRgb(168, 221, 240));
             double strength = Math.Max(0.10, Math.Min(1.0, settings.GlassStrength));
-            byte alpha = (byte)Math.Round((12 + 105 * strength) * settings.PanelOpacity);
-            Color tint = Blend(accent, Colors.White, 0.68);
+            byte alpha = (byte)Math.Round((12 + 140 * strength) * settings.PanelOpacity);
+            Color tint = Blend(accent, Colors.White, SurfaceWhiteMix(strength, .68, .16));
             return Frozen(new SolidColorBrush(Color.FromArgb(alpha, tint.R, tint.G, tint.B)));
         }
 
@@ -39,18 +39,23 @@ namespace DDay3.Services
         {
             Color accent = ParseColor(settings.GlassLightColor, Color.FromRgb(168, 221, 240));
             double strength = Math.Max(0.10, Math.Min(1.0, settings.GlassStrength));
-            byte alpha = (byte)Math.Round((8 + 42 * strength) * settings.ClockPanelOpacity);
-            Color tint = Blend(accent, Colors.White, 0.48);
+            byte alpha = (byte)Math.Round((8 + 98 * strength) * settings.ClockPanelOpacity);
+            Color tint = Blend(accent, Colors.White, SurfaceWhiteMix(strength, .48, .12));
             return Frozen(new SolidColorBrush(Color.FromArgb(alpha, tint.R, tint.G, tint.B)));
         }
 
         internal static Brush CreateScheduleCapsuleBrush(AppSettings settings)
         {
             Color accent = ParseColor(settings.GlassLightColor, Color.FromRgb(168, 221, 240));
-            Color tint = Blend(accent, Colors.White, 0.58);
             double strength = Math.Max(0.10, Math.Min(1.0, settings.GlassStrength));
-            byte alpha = (byte)Math.Round((18 + 34 * strength) * settings.DDayPanelOpacity);
+            Color tint = Blend(accent, Colors.White, SurfaceWhiteMix(strength, .58, .14));
+            byte alpha = (byte)Math.Round((18 + 98 * strength) * settings.DDayPanelOpacity);
             return Frozen(new SolidColorBrush(Color.FromArgb(alpha, tint.R, tint.G, tint.B)));
+        }
+        private static double SurfaceWhiteMix(double strength, double weak, double strong)
+        {
+            double amount = (Math.Max(.1, Math.Min(1, strength)) - .1) / .9;
+            return weak + (strong - weak) * amount;
         }
 
         internal static Brush CreateUpcomingCapsuleBrush(AppSettings settings)

@@ -9,6 +9,6 @@
         <TextBlock Text="일정·시계·음력·달력을 나만의 글꼴과 유리 패널로 표시하는 Windows용 D-Day 위젯입니다."
                    TextWrapping="Wrap" TextAlignment="Center"/>
         <TextBlock Text="© 2026 MathTime · Freeware" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-        <Button Content="https://mathtime.kr/?page=dday" Click="Website_OnClick" Margin="0,7,0,0"/>
+        <Button Content="https://mathtime.kr/dday.html" Click="Website_OnClick" Margin="0,7,0,0"/>
     </StackPanel>
 </UserControl>

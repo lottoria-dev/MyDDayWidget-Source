@@ -30,7 +30,7 @@ if ($projectText -notmatch 'Compile Remove="Diagnostics\\DeveloperTraceLog.cs"')
     throw 'Release diagnostics exclusion is missing.'
 }
 if ($projectText -notmatch 'TRACE_DIAGNOSTICS') { throw 'Debug diagnostic symbol is missing.' }
-if ($projectText -notmatch '<Version>3\.5\.4</Version>') { throw 'Project version is not 3.5.4.' }
+if ($projectText -notmatch '<Version>3\.5\.5</Version>') { throw 'Project version is not 3.5.5.' }
 foreach ($frameworkAssembly in @('System.Web', 'System.Web.Extensions')) {
     if ($projectText -notmatch ('<Reference\s+Include="' + [Regex]::Escape($frameworkAssembly) + '"')) {
         throw "Missing framework reference required by Google JSON and WPF markup compilation: $frameworkAssembly"
@@ -109,7 +109,7 @@ if ($Configuration -eq 'Release') {
         if (-not (Test-Path (Join-Path (Split-Path $releaseExe) $dependency))) { throw "Missing ICS runtime dependency: $dependency" }
     }
     if ($assembly.GetType('DDay3.Diagnostics.DeveloperTraceLog', $false)) { throw 'Log backend is present in Release.' }
-    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($releaseExe).FileVersion -ne '3.5.4.0') { throw 'Unexpected executable version.' }
+    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($releaseExe).FileVersion -ne '3.5.5.0') { throw 'Unexpected executable version.' }
 }
 
 Write-Host "[OK] D-Day 3 source verification passed ($Configuration)."

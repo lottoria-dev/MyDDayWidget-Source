@@ -9,7 +9,7 @@ namespace DDay3.Services
         internal const byte OutlineAlpha = 32;
         internal const double MaximumShadeAlpha = 8;
         private readonly double sigma, center, peak, shadeSigma, shadePeak, lightX, lightY;
-        internal GlassReflection(double angle, int depth, double scale, double pixelSize, double opacity)
+        internal GlassReflection(double angle, int depth, double scale, double pixelSize, double opacity, double strength = .18)
         {
             double magnitude = Math.Abs(depth) / 100.0;
             double amount = Math.Min(1, magnitude), extension = Math.Max(0, magnitude - 1);
@@ -17,17 +17,30 @@ namespace DDay3.Services
             // Surface reflections survive a clear face. Still fade continuously to zero
             // below the supported 5% minimum; do not add a bright ring at low opacity.
             double visibility = Math.Min(1, alpha / .05) * (.3 + .7 * Math.Sqrt(alpha));
-            double width = (.9 + 3.4 * Math.Pow(amount, .8) + 2 * extension) * scale;
+            double intensity = Intensity(strength);
+            double width = (.9 + 5.5 * Math.Pow(amount, .8) + 4 * extension) * scale;
             bool recessed = depth < 0;
             // A raised lip is brightest at the edge. A recess has a broader inside
             // shoulder, with at least 70% of its peak still connected to the edge.
             sigma = Math.Max(.65 * pixelSize, (recessed ? .45 : .38) * width);
             center = recessed ? .38 * width * amount : 0;
-            peak = (22 + 20 * Math.Sqrt(amount)) * Math.Sqrt(amount) * (1 + .18 * extension) * visibility;
+            peak = Math.Min(190, (24 + 60 * Math.Pow(amount, .8)) * Math.Sqrt(amount)
+                * (1 + .25 * extension) * intensity) * visibility;
             shadeSigma = Math.Max(.65 * pixelSize, (recessed ? .44 : .32) * width);
             shadePeak = Math.Min(MaximumShadeAlpha, (4 + 2 * amount + extension) * amount) * visibility;
             double reflection = GlassLighting.HighlightDirection(angle, depth);
             lightX = GlassLighting.X(reflection); lightY = GlassLighting.Y(reflection);
+        }
+        internal static double Intensity(double strength)
+        {
+            if (double.IsNaN(strength) || double.IsInfinity(strength)) strength = .18;
+            double position = (Math.Max(.1, Math.Min(1, strength)) - .1) / .9;
+            return .65 + 1.25 * Math.Pow(position, .9);
+        }
+        internal double LightIncidence(double normalX, double normalY)
+        {
+            double facing = Math.Max(0, Math.Min(1, normalX * lightX + normalY * lightY));
+            return facing * facing * (3 - 2 * facing);
         }
         internal double Alpha(double distance, double normalX, double normalY)
         {

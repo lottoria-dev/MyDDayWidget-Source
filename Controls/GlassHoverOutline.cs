@@ -12,12 +12,15 @@ namespace DDay3.Controls
         internal const double RevolutionSeconds = 16.0;
         internal const int MaximumHeadAlpha = 255;
         internal const double HeadSigma = .007;
-        internal const double TailStrokePixels = .5;
+        internal const double TailStrokePixels = 1.0;
         internal const double HeadStrokePixels = 1.4;
         internal const double HeadHaloPixels = 3.0;
-        private const double TailLength = .92;
-        private const double TailDecay = 1.10;
-        private const int MaximumTailAlpha = 108;
+        internal const int MaximumActiveRimAlpha = 104;
+        private const int MaximumActiveHaloAlpha = 22;
+        private const int MaximumActiveContrastAlpha = 26;
+        private const double TailLength = .94;
+        private const double TailDecay = 2.4;
+        private const int MaximumTailAlpha = 156;
         private const int MaximumHeadStrokeAlpha = 238;
         private const int MaximumHeadHaloAlpha = 52;
         private const int MaximumContrastHeadAlpha = 102;
@@ -42,6 +45,10 @@ namespace DDay3.Controls
         private readonly Pen[] haloPens = new Pen[MaximumHeadHaloAlpha + 1];
         private readonly Pen[] contrastHeadPens = new Pen[MaximumContrastHeadAlpha + 1];
         private readonly Pen[] contrastTailPens = new Pen[MaximumContrastTailAlpha + 1];
+        private readonly Pen[] activeRimPens = new Pen[MaximumActiveRimAlpha + 1];
+        private readonly Pen[] activeHaloPens = new Pen[MaximumActiveHaloAlpha + 1];
+        private readonly Pen[] activeContrastPens = new Pen[MaximumActiveContrastAlpha + 1];
+        private Geometry cachedOutline;
         private StrokeAlphas[] frameAlphas;
         private struct StrokeAlphas
         {
@@ -137,6 +144,18 @@ namespace DDay3.Controls
                 if (cachedWidth != ActualWidth || cachedHeight != ActualHeight || cachedRadius != radius || cachedDpi != dpi)
                     BuildContour(radius, dpi);
                 if (perimeter <= 0) return;
+                // A steady fine rim signals activation even where the moving tail fades.
+                // Keep the faint halo inside the shared contour, without blur or shadow.
+                dc.PushClip(cachedOutline);
+                int rim = ActiveRimAlpha(envelope);
+                int halo = ScaledAlpha(MaximumActiveHaloAlpha, envelope);
+                int contrast = ScaledAlpha(MaximumActiveContrastAlpha, envelope);
+                if (contrast > 0) dc.DrawGeometry(null, activeContrastPens[contrast], cachedOutline);
+                if (halo > 0) dc.DrawGeometry(null, activeHaloPens[halo], cachedOutline);
+                dc.Pop();
+                // This one-pixel stroke is already half-pixel inset into the widget.
+                if (rim > 0) dc.DrawGeometry(null, activeRimPens[rim], cachedOutline);
+                dc.PushClip(cachedOutline);
                 double phase = clock.Elapsed.TotalSeconds / RevolutionSeconds;
                 phase -= Math.Floor(phase);
                 for (int i = 1; i < points.Count; i++)
@@ -165,6 +184,7 @@ namespace DDay3.Controls
                     if (sample.Core > 0) dc.DrawLine(headPens[sample.Core], points[i - 1], points[i]);
                     if (sample.Center > 0) dc.DrawLine(pens[sample.Center], points[i - 1], points[i]);
                 }
+                dc.Pop();
                 RenderedFrameCount++;
             }
         }
@@ -174,15 +194,17 @@ namespace DDay3.Controls
             // so the tail follows continuously through the top-left contour origin.
             double head = HeadWeight(fraction, phase);
             double tail = TailWeight(fraction, phase);
-            // Keep white intensity while halving the geometric dimensions.
+            // Keep the compact white head, with a brighter tail across most of the rim.
             double alpha = head * MaximumHeadAlpha + (1 - head) * MaximumTailAlpha * tail;
             return ScaledAlpha(alpha, envelope);
         }
         private static double TailWeight(double fraction, double phase)
         {
             double lag = phase - fraction; lag -= Math.Floor(lag);
-            return lag > 0 && lag < TailLength ? Math.Exp(-lag / TailDecay) * (1 - lag / TailLength) : 0;
+            return lag > 0 && lag < TailLength ? Math.Exp(-lag / TailDecay) * Math.Pow(1 - lag / TailLength, .7) : 0;
         }
+        internal static int ActiveRimAlpha(double envelope)
+        { return ScaledAlpha(MaximumActiveRimAlpha, envelope); }
         private static int ScaledAlpha(double alpha, double envelope)
         { return (int)Math.Round(alpha * Math.Max(0, Math.Min(1, envelope))); }
         private static double HeadWeight(double fraction, double phase)
@@ -203,8 +225,8 @@ namespace DDay3.Controls
         {
             cachedWidth = ActualWidth; cachedHeight = ActualHeight; cachedRadius = radius; cachedDpi = dpi;
             double inset = .5 / dpi;
-            var outline = GlassPanel.SurfaceOutline(new Rect(inset, inset, ActualWidth - 2 * inset, ActualHeight - 2 * inset), radius);
-            var flat = outline.GetFlattenedPathGeometry(.15 / dpi, ToleranceType.Absolute);
+            cachedOutline = GlassPanel.SurfaceOutline(new Rect(inset, inset, ActualWidth - 2 * inset, ActualHeight - 2 * inset), radius);
+            var flat = cachedOutline.GetFlattenedPathGeometry(.15 / dpi, ToleranceType.Absolute);
             points.Clear(); distances.Clear(); perimeter = 0;
             foreach (var figure in flat.Figures)
             {
@@ -234,7 +256,13 @@ namespace DDay3.Controls
             for (int alpha = 1; alpha < contrastHeadPens.Length; alpha++)
                 contrastHeadPens[alpha] = CometPen(alpha, 2.2 / dpi, true);
             for (int alpha = 1; alpha < contrastTailPens.Length; alpha++)
-                contrastTailPens[alpha] = CometPen(alpha, 1.3 / dpi, true);
+                contrastTailPens[alpha] = CometPen(alpha, 1.8 / dpi, true);
+            for (int alpha = 1; alpha < activeRimPens.Length; alpha++)
+                activeRimPens[alpha] = CometPen(alpha, 1.0 / dpi);
+            for (int alpha = 1; alpha < activeHaloPens.Length; alpha++)
+                activeHaloPens[alpha] = CometPen(alpha, 3.0 / dpi);
+            for (int alpha = 1; alpha < activeContrastPens.Length; alpha++)
+                activeContrastPens[alpha] = CometPen(alpha, 2.0 / dpi, true);
         }
         private static Pen CometPen(int alpha, double width, bool contrast = false)
         {

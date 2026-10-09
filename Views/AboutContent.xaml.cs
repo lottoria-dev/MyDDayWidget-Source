@@ -12,6 +12,6 @@ namespace DDay3.Views
             VersionText.Text = "Version " + App.Version;
         }
         private void Website_OnClick(object sender, RoutedEventArgs e)
-        { StartupService.OpenUrl("https://mathtime.kr/?page=dday"); }
+        { StartupService.OpenUrl("https://mathtime.kr/dday.html"); }
     }
 }

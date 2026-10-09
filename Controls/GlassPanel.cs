@@ -26,6 +26,7 @@ namespace DDay3.Controls
         private Color reflectionColor;
         private Color refractionColor;
         private double refractionStrength;
+        private double lightStrength;
         private double lightAngle, layerOpacity, designRadius = BackgroundRadius;
         private int relief;
         private Geometry cachedOutline;
@@ -43,7 +44,7 @@ namespace DDay3.Controls
         }
 
         internal void SetLighting(Color color, double angle, double opacity, int depth, double referenceRadius, bool background = false,
-            Color? pastelColor = null, string pastelMode = "off", double pastelWeight = 1)
+            Color? pastelColor = null, string pastelMode = "off", double pastelWeight = 1, double surfaceStrength = .18)
         {
             int normalizedDepth = GlassLighting.NormalizeDepth(depth, background);
             double direction = GlassLighting.NormalizeDirection(angle);
@@ -53,12 +54,16 @@ namespace DDay3.Controls
                 (byte)((color.G + 510) / 3), (byte)((color.B + 510) / 3));
             Color pastel = pastelColor ?? Colors.White;
             double strength = GlassRefraction.Strength(pastelMode, pastelWeight);
+            double lightWeight = double.IsNaN(surfaceStrength) || double.IsInfinity(surfaceStrength)
+                ? .18 : Math.Max(.1, Math.Min(1, surfaceStrength));
             if (lightingSet && reflectionColor == light && lightAngle == direction && layerOpacity == alpha
-                && relief == normalizedDepth && designRadius == radius && refractionColor == pastel && refractionStrength == strength) return;
+                && relief == normalizedDepth && designRadius == radius && refractionColor == pastel
+                && refractionStrength == strength && lightStrength == lightWeight) return;
             lightingSet = true;
             reflectionColor = light; lightAngle = direction; layerOpacity = alpha;
             relief = normalizedDepth; designRadius = radius;
             refractionColor = pastel; refractionStrength = strength;
+            lightStrength = lightWeight;
             reflectionDirty = true;
             InvalidateVisual();
         }
@@ -102,7 +107,7 @@ namespace DDay3.Controls
             pixelWidth = Math.Max(1, (int)Math.Ceiling(ActualWidth * density));
             pixelHeight = Math.Max(1, (int)Math.Ceiling(ActualHeight * density));
             pixelSize = Math.Max(ActualWidth / pixelWidth, ActualHeight / pixelHeight);
-            double reach = 10 * scale + 2 * pixelSize;
+            double reach = Math.Max(12 * scale, GlassRefraction.MaximumWashSpan(scale, Math.Min(ActualWidth, ActualHeight))) + 2 * pixelSize;
             var contour = new GlassContour(face.Left, face.Top, face.Width, face.Height, radius);
             edgePixels.Clear();
             for (int row = 0; row < pixelHeight; row++)
@@ -130,32 +135,41 @@ namespace DDay3.Controls
         {
             byte[] pixels = new byte[pixelWidth * pixelHeight * 4];
             double scale = Math.Max(.3, CornerRadius.TopLeft / designRadius);
-            var profile = new GlassReflection(lightAngle, relief, scale, pixelSize, layerOpacity);
+            var profile = new GlassReflection(lightAngle, relief, scale, pixelSize, layerOpacity, lightStrength);
             double gain = GlassRefraction.Gain(refractionStrength);
             double colorWeight = GlassRefraction.ColorWeight(refractionStrength);
             foreach (EdgePixel point in edgePixels)
             {
                 double light, shade;
                 profile.Sample(point.Distance, point.NormalX, point.NormalY, out light, out shade);
-                light *= gain;
-                byte alpha = (byte)Math.Max(0, Math.Min(255, Math.Round(light + shade)));
+                light = Math.Max(0, Math.Min(232, light * gain));
+                double wash = GlassRefraction.WashAlpha(point.Distance, profile.LightIncidence(point.NormalX, point.NormalY),
+                    relief, scale, layerOpacity, refractionStrength, Math.Min(ActualWidth, ActualHeight));
+                double remaining = 1 - light / 255;
+                byte alpha = (byte)Math.Round(light + (wash + shade * (1 - wash / 255)) * remaining);
                 int at = point.Offset;
                 // The signed normal selects either reflected light or at most 8/255
                 // neutral contact shade, never an external or blurred drop shadow.
-                byte reflectedAlpha = light > 0 ? alpha : (byte)0;
                 double white = GlassRefraction.WhiteMix(point.Distance, scale, relief);
                 byte blue = RefractionChannel(reflectionColor.B, refractionColor.B, white, colorWeight);
                 byte green = RefractionChannel(reflectionColor.G, refractionColor.G, white, colorWeight);
                 byte red = RefractionChannel(reflectionColor.R, refractionColor.R, white, colorWeight);
-                pixels[at] = (byte)((blue * reflectedAlpha + 127) / 255);
-                pixels[at + 1] = (byte)((green * reflectedAlpha + 127) / 255);
-                pixels[at + 2] = (byte)((red * reflectedAlpha + 127) / 255);
+                // The broader pastel wash sits below the narrow bright lip. Both stop
+                // before the face center and use correct premultiplied alpha.
+                pixels[at] = LitChannel(blue, refractionColor.B, light, wash, remaining);
+                pixels[at + 1] = LitChannel(green, refractionColor.G, light, wash, remaining);
+                pixels[at + 2] = LitChannel(red, refractionColor.R, light, wash, remaining);
                 pixels[at + 3] = alpha;
             }
             reflectionImage = BitmapSource.Create(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32, null, pixels, pixelWidth * 4);
             reflectionImage.Freeze();
             reflectionDirty = false;
             ReflectionBuildCount++;
+        }
+        private static byte LitChannel(byte lip, byte pastel, double light, double wash, double remaining)
+        {
+            double washColor = pastel + (255 - pastel) * .12;
+            return (byte)Math.Round((lip * light + washColor * wash * remaining) / 255);
         }
 
         private static byte RefractionChannel(byte original, byte pastel, double white, double weight)

@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$version = '3.5.4'
+$version = '3.5.5'
 & (Join-Path $PSScriptRoot 'verify-source.ps1') -Configuration Release
 $exe = Join-Path $root 'bin\x64\Release\DDay3.exe'
 $artifacts = Join-Path $root 'artifacts'
