@@ -1,6 +1,6 @@
 ﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$version = '3.5.0'
+$version = '3.5.4'
 & (Join-Path $PSScriptRoot 'verify-source.ps1') -Configuration Release
 $exe = Join-Path $root 'bin\x64\Release\DDay3.exe'
 $artifacts = Join-Path $root 'artifacts'
@@ -16,7 +16,7 @@ try {
     }
     Copy-Item (Join-Path $root 'licenses') (Join-Path $portable 'licenses') -Recurse
     Copy-Item ($exe + '.config') (Join-Path $portable 'DDay3.exe.config')
-    foreach ($name in @('README.md', 'LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'RELEASE_NOTES.md', 'ICS_CALENDAR_SETUP.md', 'PRIVACY.md')) {
+    foreach ($name in @('README.md', 'LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'RELEASE_NOTES.md', 'CHANGELOG.md', 'ICS_CALENDAR_SETUP.md', 'PRIVACY.md')) {
         Copy-Item (Join-Path $root $name) (Join-Path $portable $name)
     }
     $zipName = "DDay3-v$version-win-x64.zip"

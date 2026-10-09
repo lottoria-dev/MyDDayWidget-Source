@@ -214,6 +214,11 @@ namespace DDay3.Services
                 settings.SnapToGrid = ReadBool(window, "snap_to_grid", false, warnings);
                 settings.GridSize = ReadInt(window, "grid_size", 16, 8, 64, warnings);
                 settings.VisibleDDayCount = ReadInt(window, "visible_dday_count", 3, 1, 10, warnings);
+                settings.HighlightUpcomingDDay = ReadBool(window, "highlight_upcoming_dday", false, warnings);
+                settings.UpcomingDDayPreset = ReadEnum(window, "upcoming_dday_preset", "amber",
+                    new[] { "amber", "rose", "mint", "blue", "custom" }, warnings);
+                settings.UpcomingDDayBackgroundColor = ReadColor(window, "upcoming_dday_background_color", settings.UpcomingDDayBackgroundColor, warnings);
+                settings.UpcomingDDayTitleColor = ReadColor(window, "upcoming_dday_title_color", settings.UpcomingDDayTitleColor, warnings);
                 settings.AutoStart = ReadBool(window, "auto_start", settings.AutoStart, warnings);
                 settings.TimeFormat = ReadEnum(window, "time_format", settings.TimeFormat, new[] { "12h", "24h" }, warnings);
                 settings.DateFormat = ReadEnum(window, "date_format", settings.DateFormat,
@@ -221,6 +226,8 @@ namespace DDay3.Services
                 settings.DayFormat = ReadEnum(window, "day_format", settings.DayFormat, new[] { "kor", "eng" }, warnings);
                 settings.GlassStrength = ReadDouble(window, "glass_strength", settings.GlassStrength, 0.10, 1.0, warnings);
                 settings.GlassLightColor = ReadColor(window, "glass_light_color", settings.GlassLightColor, warnings);
+                settings.GlassRefractionColor = ReadColor(window, "glass_refraction_color", settings.GlassRefractionColor, warnings);
+                settings.GlassRefractionMode = ReadEnum(window, "glass_refraction_mode", "soft", new[] { "off", "soft", "clear" }, warnings);
                 settings.GlassLightDirection = ReadDouble(window, "glass_light_direction", settings.GlassLightDirection, 0, 360, warnings);
                 settings.PanelDepth = ReadInt(window, "panel_depth", settings.PanelDepth, -100, 200, warnings);
                 settings.ClockPanelDepth = ReadInt(window, "clock_panel_depth", settings.ClockPanelDepth, -100, 100, warnings);
@@ -394,7 +401,7 @@ namespace DDay3.Services
         {
             StringBuilder text = new StringBuilder();
             text.AppendLine("[Meta]");
-            text.AppendLine("schema_version = 15");
+            text.AppendLine("schema_version = 17");
             text.AppendLine("saved_at = " + DateTimeOffset.Now.ToString("o"));
             text.AppendLine();
             text.AppendLine("[Window]");
@@ -415,6 +422,10 @@ namespace DDay3.Services
             Write(text, "show_korean_holidays", value.ShowKoreanHolidays);
             Write(text, "show_solar_terms", value.ShowSolarTerms);
             Write(text, "visible_dday_count", value.VisibleDDayCount);
+            Write(text, "highlight_upcoming_dday", value.HighlightUpcomingDDay);
+            Write(text, "upcoming_dday_preset", value.UpcomingDDayPreset);
+            Write(text, "upcoming_dday_background_color", value.UpcomingDDayBackgroundColor);
+            Write(text, "upcoming_dday_title_color", value.UpcomingDDayTitleColor);
             Write(text, "auto_start", value.AutoStart);
             Write(text, "show_seconds", value.ShowSeconds);
             Write(text, "show_lunar_date", value.ShowLunarDate);
@@ -426,6 +437,8 @@ namespace DDay3.Services
             Write(text, "day_format", value.DayFormat);
             Write(text, "glass_strength", value.GlassStrength.ToString("0.00", CultureInfo.InvariantCulture));
             Write(text, "glass_light_color", value.GlassLightColor);
+            Write(text, "glass_refraction_color", value.GlassRefractionColor);
+            Write(text, "glass_refraction_mode", value.GlassRefractionMode);
             Write(text, "glass_light_direction", value.GlassLightDirection.ToString("0", CultureInfo.InvariantCulture));
             Write(text, "panel_depth", value.PanelDepth);
             Write(text, "clock_panel_depth", value.ClockPanelDepth);
@@ -496,6 +509,11 @@ namespace DDay3.Services
 
         private static void Normalize(AppSettings value)
         {
+            value.GlassRefractionColor = GlassRefraction.NormalizeColor(value.GlassRefractionColor);
+            value.GlassRefractionMode = GlassRefraction.NormalizeMode(value.GlassRefractionMode);
+            value.UpcomingDDayPreset = DDayHighlightPolicy.NormalizePreset(value.UpcomingDDayPreset);
+            value.UpcomingDDayBackgroundColor = DDayHighlightPolicy.NormalizeColor(value.UpcomingDDayBackgroundColor, "#C9A96B");
+            value.UpcomingDDayTitleColor = DDayHighlightPolicy.NormalizeColor(value.UpcomingDDayTitleColor, "#F4DCA5");
             value.SizeTime = NormalizeSize(value.SizeTime, "time");
             value.SizeDate = NormalizeSize(value.SizeDate, "date");
             value.SizeDDayTitle = NormalizeSize(value.SizeDDayTitle, "dday_title");

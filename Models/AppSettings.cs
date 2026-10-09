@@ -21,6 +21,10 @@ namespace DDay3.Models
         internal bool ShowKoreanHolidays { get; set; }
         internal bool ShowSolarTerms { get; set; }
         internal int VisibleDDayCount { get; set; }
+        internal bool HighlightUpcomingDDay { get; set; }
+        internal string UpcomingDDayPreset { get; set; }
+        internal string UpcomingDDayBackgroundColor { get; set; }
+        internal string UpcomingDDayTitleColor { get; set; }
         internal string TimeFormat { get; set; }
         internal bool ShowSeconds { get; set; }
         internal bool ShowLunarDate { get; set; }
@@ -31,6 +35,8 @@ namespace DDay3.Models
         internal string DayFormat { get; set; }
         internal double GlassStrength { get; set; }
         internal string GlassLightColor { get; set; }
+        internal string GlassRefractionColor { get; set; }
+        internal string GlassRefractionMode { get; set; }
         internal double GlassLightDirection { get; set; }
         internal int PanelDepth { get; set; }
         internal int ClockPanelDepth { get; set; }
@@ -93,6 +99,10 @@ namespace DDay3.Models
                 AutoStart = false,
                 ShowCalendar = false,
                 VisibleDDayCount = 3,
+                HighlightUpcomingDDay = false,
+                UpcomingDDayPreset = "amber",
+                UpcomingDDayBackgroundColor = "#C9A96B",
+                UpcomingDDayTitleColor = "#F4DCA5",
                 TimeFormat = "24h",
                 ShowSeconds = true,
                 ShowLunarDate = false,
@@ -103,6 +113,8 @@ namespace DDay3.Models
                 DayFormat = "kor",
                 GlassStrength = 0.18,
                 GlassLightColor = "#DCDCDC",
+                GlassRefractionColor = "#7EC1EE",
+                GlassRefractionMode = "soft",
                 GlassLightDirection = 315,
                 PanelDepth = 35,
                 ClockPanelDepth = 20,

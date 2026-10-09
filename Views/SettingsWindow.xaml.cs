@@ -40,8 +40,11 @@ namespace DDay3.Views
         private readonly List<TypographyEditor> typographyEditors = new List<TypographyEditor>();
         private AppSettings working;
         private string selectedGlassColor;
+        private string selectedRefractionColor;
         private string selectedThemeId;
         private string themeSeedColor;
+        private string upcomingBackgroundColor;
+        private string upcomingTitleColor;
         private bool isPopulating;
         private bool deleteHolidayKey;
         private bool windowClosed;
@@ -56,12 +59,14 @@ namespace DDay3.Views
             this.configuration = configuration;
             working = settings;
             selectedGlassColor = settings.GlassLightColor;
+            selectedRefractionColor = settings.GlassRefractionColor;
             selectedThemeId = settings.ThemeId;
             themeSeedColor = settings.ThemeSeedColor;
             DDayGrid.ItemsSource = rows;
             InitializeChoiceLists();
             CreateTypographyEditors();
             CreateDepthPresets();
+            CreateRefractionColors();
             previewTimer.Tick += delegate { previewTimer.Stop(); ApplyPreview(); };
             PopulateFromSettings(settings);
             UpdateHolidayKeyHint();
@@ -93,6 +98,19 @@ namespace DDay3.Views
 
         private void InitializeChoiceLists()
         {
+            RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "꺼짐 · 기본 반사광", Tag = "off" });
+            RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "은은하게", Tag = "soft" });
+            RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "선명하게", Tag = "clear" });
+            foreach (DDayHighlightPreset preset in DDayHighlightPolicy.Presets)
+            {
+                StackPanel content = new StackPanel { Orientation = Orientation.Horizontal };
+                content.Children.Add(new Border { Width = 12, Height = 12, CornerRadius = new CornerRadius(6),
+                    Background = new SolidColorBrush(LiquidGlassTheme.ParseColor(preset.Background, Colors.LightGray)),
+                    Margin = new Thickness(0, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center });
+                content.Children.Add(new TextBlock { Text = preset.Name });
+                UpcomingDDayPresetCombo.Items.Add(new ComboBoxItem { Content = content, Tag = preset.Id });
+            }
+            UpcomingDDayPresetCombo.Items.Add(new ComboBoxItem { Content = "사용자 지정", Tag = "custom" });
             DDaySortCombo.Items.Add(new ComboBoxItem { Content = "날짜순 · 빠른 날짜 먼저", Tag = "date_asc" });
             DDaySortCombo.Items.Add(new ComboBoxItem { Content = "날짜순 · 늦은 날짜 먼저", Tag = "date_desc" });
             DDaySortCombo.Items.Add(new ComboBoxItem { Content = "오늘과 가까운 날순 · 과거 포함", Tag = "nearest" });
@@ -215,6 +233,11 @@ namespace DDay3.Views
                 SelectByTag(TextColorModeCombo, working.TextColorMode);
                 SelectByTag(WeekStartCombo, working.WeekStart);
                 VisibleDDayCountInput.Value = working.VisibleDDayCount;
+                UpcomingDDayCheck.IsChecked = working.HighlightUpcomingDDay;
+                upcomingBackgroundColor = working.UpcomingDDayBackgroundColor;
+                upcomingTitleColor = working.UpcomingDDayTitleColor;
+                SelectByTag(UpcomingDDayPresetCombo, working.UpcomingDDayPreset);
+                UpdateUpcomingDDayControls();
                 AutoStartCheck.IsChecked = working.AutoStart;
                 ShowSecondsCheck.IsChecked = working.ShowSeconds;
                 ShowLunarDateCheck.IsChecked = working.ShowLunarDate;
@@ -229,6 +252,8 @@ namespace DDay3.Views
                 TextOpacitySlider.Value = working.TextOpacity * 100.0;
                 GlassStrengthSlider.Value = Math.Max(10.0, working.GlassStrength * 100.0);
                 selectedGlassColor = working.GlassLightColor;
+                selectedRefractionColor = working.GlassRefractionColor;
+                SelectByTag(RefractionModeCombo, working.GlassRefractionMode);
                 LightDirectionDial.Value = working.GlassLightDirection;
                 PanelDepthSlider.Value = working.PanelDepth;
                 ClockDepthSlider.Value = working.ClockPanelDepth;
@@ -250,6 +275,7 @@ namespace DDay3.Views
             }
             UpdateThemeSelection();
             UpdateDepthSelection();
+            UpdateRefractionColors();
             PreviewSurface();
         }
 
@@ -279,6 +305,7 @@ namespace DDay3.Views
             value.TextColorMode = SelectedTag(TextColorModeCombo, "custom");
             value.WeekStart = SelectedTag(WeekStartCombo, "Sunday");
             value.VisibleDDayCount = (int)VisibleDDayCountInput.Value;
+            CollectUpcomingDDay(value);
             value.AutoStart = AutoStartCheck.IsChecked == true;
             value.ShowSeconds = ShowSecondsCheck.IsChecked == true;
             value.ShowLunarDate = ShowLunarDateCheck.IsChecked == true;
@@ -293,6 +320,8 @@ namespace DDay3.Views
             value.TextOpacity = TextOpacitySlider.Value / 100.0;
             value.GlassStrength = GlassStrengthSlider.Value / 100.0;
             value.GlassLightColor = selectedGlassColor;
+            value.GlassRefractionColor = selectedRefractionColor;
+            value.GlassRefractionMode = SelectedTag(RefractionModeCombo, "soft");
             value.GlassLightDirection = LightDirectionDial.Value;
             value.PanelDepth = (int)PanelDepthSlider.Value;
             value.ClockPanelDepth = (int)ClockDepthSlider.Value;
@@ -651,6 +680,8 @@ namespace DDay3.Views
                 TextOpacitySlider.Value = clean.TextOpacity * 100;
                 GlassStrengthSlider.Value = clean.GlassStrength * 100;
                 selectedGlassColor = clean.GlassLightColor;
+                selectedRefractionColor = clean.GlassRefractionColor;
+                SelectByTag(RefractionModeCombo, clean.GlassRefractionMode);
                 selectedThemeId = clean.ThemeId;
                 themeSeedColor = clean.ThemeSeedColor;
                 SelectByTag(TextColorModeCombo, clean.TextColorMode);
@@ -660,6 +691,7 @@ namespace DDay3.Views
             UpdateGlassColorButton();
             UpdateThemeSelection();
             UpdateDepthSelection();
+            UpdateRefractionColors();
             previewTimer.Stop();
             ApplyPreview();
         }
@@ -696,6 +728,8 @@ namespace DDay3.Views
             preview.TextOpacity = TextOpacitySlider.Value / 100.0;
             preview.GlassStrength = GlassStrengthSlider.Value / 100.0;
             preview.GlassLightColor = selectedGlassColor;
+            preview.GlassRefractionColor = selectedRefractionColor;
+            preview.GlassRefractionMode = SelectedTag(RefractionModeCombo, "soft");
             preview.GlassLightDirection = LightDirectionDial.Value;
             preview.PanelDepth = (int)PanelDepthSlider.Value;
             preview.ClockPanelDepth = (int)ClockDepthSlider.Value;
@@ -703,9 +737,64 @@ namespace DDay3.Views
             preview.TextColorMode = SelectedTag(TextColorModeCombo, "custom");
             try { CollectTypography(preview); }
             catch (InvalidOperationException) { return; } // Keep last valid preview during numeric editing.
+            UpdateUpcomingDDayControls();
+            CollectUpcomingDDay(preview);
             owner.PreviewAppearance(preview);
             TypographyPreviewText.Text = "현재 창 배율 " + (owner.DisplayScale * 100).ToString("0", CultureInfo.InvariantCulture) +
                 "% · 달력 기준 크기 " + preview.SizeCalendar.ToString(CultureInfo.InvariantCulture) + "pt. 화면 배율은 내부에서 연속값으로 계산합니다.";
+        }
+
+        private void CreateRefractionColors()
+        {
+            string[] names = { "무채색", "하늘", "민트", "라벤더", "로즈", "피치" };
+            string[] colors = { "#DCDCDC", "#7EC1EE", "#7FD2B1", "#B59EE8", "#EA9DB7", "#EFB18B" };
+            for (int i = 0; i < names.Length; i++)
+            {
+                Button button = new Button { Tag = colors[i], Padding = new Thickness(8, 5, 8, 5), Margin = new Thickness(2, 2, 2, 2),
+                    Content = CreateThemeButtonContent(names[i], new[] { colors[i] }, false),
+                    ToolTip = names[i] + " 굴절광" };
+                AutomationProperties.SetName(button, names[i] + " 굴절광");
+                button.Click += RefractionPreset_OnClick;
+                RefractionColorPanel.Children.Add(button);
+            }
+        }
+
+        private void RefractionPreset_OnClick(object sender, RoutedEventArgs e)
+        {
+            selectedRefractionColor = Convert.ToString(((Button)sender).Tag, CultureInfo.InvariantCulture);
+            UpdateRefractionColors();
+            PreviewRefraction();
+        }
+
+        private void CustomRefractionColor_OnClick(object sender, RoutedEventArgs e)
+        {
+            string color = ChooseColor(selectedRefractionColor);
+            if (color == null) return;
+            selectedRefractionColor = color;
+            UpdateRefractionColors();
+            PreviewRefraction();
+        }
+
+        private void RefractionMode_OnChanged(object sender, SelectionChangedEventArgs e)
+        { if (!isPopulating) PreviewRefraction(); }
+
+        private void UpdateRefractionColors()
+        {
+            foreach (Button button in RefractionColorPanel.Children.OfType<Button>())
+            {
+                bool selected = string.Equals(Convert.ToString(button.Tag), selectedRefractionColor, StringComparison.OrdinalIgnoreCase);
+                button.BorderBrush = selected ? (Brush)Application.Current.Resources["AccentBrush"] : (Brush)Application.Current.Resources["HairlineBrush"];
+                button.BorderThickness = new Thickness(selected ? 2 : 1);
+            }
+            SetColorButton(CustomRefractionColorButton, selectedRefractionColor);
+            CustomRefractionColorButton.Content = "굴절광 직접 선택 " + selectedRefractionColor;
+        }
+
+        private void PreviewRefraction()
+        {
+            if (isPopulating || string.IsNullOrEmpty(selectedRefractionColor)) return;
+            MainWindow owner = Owner as MainWindow;
+            if (owner != null) owner.PreviewGlassRefraction(selectedRefractionColor, SelectedTag(RefractionModeCombo, "soft"));
         }
 
         private void GlassPreset_OnClick(object sender, RoutedEventArgs e)
@@ -728,6 +817,64 @@ namespace DDay3.Views
             CustomGlassColorButton.Tag = selectedGlassColor;
             CustomGlassColorButton.Content = "직접 선택 " + selectedGlassColor;
             CustomGlassColorButton.Background = new SolidColorBrush(LiquidGlassTheme.ParseColor(selectedGlassColor, Colors.LightBlue));
+            PreviewSurface();
+        }
+
+        private void CollectUpcomingDDay(AppSettings value)
+        {
+            value.HighlightUpcomingDDay = UpcomingDDayCheck.IsChecked == true;
+            value.UpcomingDDayPreset = SelectedTag(UpcomingDDayPresetCombo, "amber");
+            value.UpcomingDDayBackgroundColor = upcomingBackgroundColor;
+            value.UpcomingDDayTitleColor = upcomingTitleColor;
+        }
+
+        private void UpdateUpcomingDDayControls()
+        {
+            if (UpcomingDDayOptions == null || working == null) return;
+            UpcomingDDayOptions.IsEnabled = UpcomingDDayCheck.IsChecked == true;
+            string id = SelectedTag(UpcomingDDayPresetCombo, "amber");
+            if (id != "custom")
+            {
+                AppSettings value = working.Clone();
+                value.TextColorMode = SelectedTag(TextColorModeCombo, value.TextColorMode);
+                TypographyEditor title = typographyEditors.FirstOrDefault(editor => editor.Key == "dday_title");
+                if (title != null) value.ColorDDayTitle = Convert.ToString(title.Color.Tag, CultureInfo.InvariantCulture);
+                value.UpcomingDDayPreset = id;
+                upcomingBackgroundColor = DDayHighlightPolicy.Background(value);
+                upcomingTitleColor = DDayHighlightPolicy.Title(value);
+            }
+            SetColorButton(UpcomingDDayBackgroundButton, upcomingBackgroundColor);
+            SetColorButton(UpcomingDDayTitleButton, upcomingTitleColor);
+            UpcomingDDayBackgroundButton.Content = "배경";
+            UpcomingDDayTitleButton.Content = "제목";
+            UpcomingDDayBackgroundButton.ToolTip = "옅게 적용할 배경색 · " + upcomingBackgroundColor;
+            UpcomingDDayTitleButton.ToolTip = "제목색 · " + upcomingTitleColor;
+        }
+
+        private void UpcomingDDay_OnChanged(object sender, RoutedEventArgs e)
+        {
+            if (isPopulating) return;
+            UpdateUpcomingDDayControls();
+            PreviewSurface();
+        }
+
+        private void UpcomingDDayPreset_OnChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (isPopulating) return;
+            UpdateUpcomingDDayControls();
+            PreviewSurface();
+        }
+
+        private void UpcomingDDayColor_OnClick(object sender, RoutedEventArgs e)
+        {
+            bool background = sender == UpcomingDDayBackgroundButton;
+            string chosen = ChooseColor(background ? upcomingBackgroundColor : upcomingTitleColor);
+            if (chosen == null) return;
+            if (background) upcomingBackgroundColor = chosen; else upcomingTitleColor = chosen;
+            isPopulating = true;
+            try { SelectByTag(UpcomingDDayPresetCombo, "custom"); }
+            finally { isPopulating = false; }
+            UpdateUpcomingDDayControls();
             PreviewSurface();
         }
 
@@ -840,6 +987,7 @@ namespace DDay3.Views
         private void TextColorMode_OnChanged(object sender, SelectionChangedEventArgs e)
         {
             if (isPopulating || typographyEditors.Count != 6) return;
+            UpdateUpcomingDDayControls();
             UpdateThemeSelection();
             PreviewSurface();
         }

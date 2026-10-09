@@ -204,12 +204,30 @@ namespace DDay3.Views
             ApplyWindowSize(previewOriginalWidth);
         }
 
+        internal void PreviewGlassRefraction(string color, string mode)
+        {
+            if (previewOriginal == null)
+            {
+                previewOriginal = settings;
+                previewOriginalWidth = Width;
+                settings = settings.Clone();
+            }
+            settings.GlassRefractionColor = GlassRefraction.NormalizeColor(color);
+            settings.GlassRefractionMode = GlassRefraction.NormalizeMode(mode);
+            ApplyPanelLighting(GlassSurface, settings, settings.PanelOpacity, settings.PanelDepth, GlassPanel.BackgroundRadius, true);
+            ApplyPanelLighting(ClockCard, settings, settings.ClockPanelOpacity, settings.ClockPanelDepth, GlassPanel.ClockRadius);
+            foreach (GlassPanel capsule in DDayItemsPanel.Children.OfType<GlassPanel>())
+                ApplyPanelLighting(capsule, settings, settings.DDayPanelOpacity, settings.DDayPanelDepth, GlassPanel.ScheduleRadius);
+        }
+
         private static void ApplyPanelLighting(GlassPanel panel, AppSettings value, double opacity, int depth, double referenceRadius, bool background = false)
         {
             if (panel == null) return;
             panel.ShowWhiteOutline = value.ShowPanelOutline;
             panel.SetLighting(LiquidGlassTheme.ParseColor(value.GlassLightColor, Colors.LightBlue),
-                value.GlassLightDirection, opacity, depth, referenceRadius, background);
+                value.GlassLightDirection, opacity, depth, referenceRadius, background,
+                LiquidGlassTheme.ParseColor(value.GlassRefractionColor, Color.FromRgb(126, 193, 238)), value.GlassRefractionMode,
+                background ? 1.0 : referenceRadius == GlassPanel.ClockRadius ? .65 : .45);
         }
 
         private void ApplySurfaceSettings(AppSettings value)
@@ -252,6 +270,25 @@ namespace DDay3.Views
             }
             CalendarView.ApplyColors(BrushFrom(displaySettings.ColorCalendar, Colors.White),
                 LiquidGlassTheme.ParseColor(displaySettings.ColorDDayCount, Colors.LightBlue));
+            UpdateDDayHighlights(DateTime.Today);
+        }
+
+        private void UpdateDDayHighlights(DateTime today)
+        {
+            Brush normalPanel = LiquidGlassTheme.CreateScheduleCapsuleBrush(settings);
+            Brush normalTitle = BrushFrom(displaySettings.ColorDDayTitle, Colors.White);
+            Brush upcomingPanel = LiquidGlassTheme.CreateUpcomingCapsuleBrush(settings);
+            Brush upcomingTitle = BrushFrom(DDayHighlightPolicy.Title(settings), Colors.White);
+            foreach (Border capsule in DDayItemsPanel.Children.OfType<Border>())
+            {
+                Grid row = capsule.Child as Grid;
+                DDayItem item = row == null ? null : row.Tag as DDayItem;
+                if (item == null) continue;
+                bool upcoming = DDayHighlightPolicy.IsUpcoming(settings, item.Date, today);
+                capsule.Background = upcoming ? upcomingPanel : normalPanel;
+                TextBlock title = row.Children.OfType<TextBlock>().FirstOrDefault();
+                if (title != null) title.Foreground = upcoming ? upcomingTitle : normalTitle;
+            }
         }
 
         private double MeasureScheduleRowHeight(double scale = 1)
@@ -362,6 +399,7 @@ namespace DDay3.Views
 
         private void UpdateDDayCounts(DateTime today)
         {
+            UpdateDDayHighlights(today);
             foreach (Border capsule in DDayItemsPanel.Children.OfType<Border>())
             {
                 Grid row = capsule.Child as Grid;
@@ -504,7 +542,7 @@ namespace DDay3.Views
             }
             catch { }
 
-            Forms.ContextMenuStrip menu = new Forms.ContextMenuStrip();
+            Forms.ContextMenuStrip menu = new Forms.ContextMenuStrip { ShowImageMargin = false, ShowCheckMargin = false };
             menu.Items.Add("보이기/숨기기", null, delegate { Dispatcher.Invoke(ToggleVisibility); });
             menu.Items.Add("주 모니터로 가져오기", null, delegate { Dispatcher.Invoke(BringToPrimary); });
             menu.Items.Add("격자에 맞추기", null, delegate { Dispatcher.Invoke(SnapNow); });
@@ -546,7 +584,11 @@ namespace DDay3.Views
 
         private static void AddMenuItem(ContextMenu menu, string text, Action action)
         {
-            MenuItem item = new MenuItem { Header = text };
+            MenuItem item = new MenuItem
+            {
+                Header = text,
+                Style = (Style)Application.Current.Resources["TextOnlyMenuItemStyle"]
+            };
             item.Click += delegate { action(); };
             menu.Items.Add(item);
         }

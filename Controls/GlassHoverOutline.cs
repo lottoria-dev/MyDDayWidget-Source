@@ -10,11 +10,18 @@ namespace DDay3.Controls
     public sealed class GlassHoverOutline : FrameworkElement
     {
         internal const double RevolutionSeconds = 16.0;
-        internal const int MaximumHeadAlpha = 128;
-        private const double HeadSigma = .006;
-        private const double TailLength = .80;
-        private const double TailDecay = .65;
-        private const int MaximumTailAlpha = 64;
+        internal const int MaximumHeadAlpha = 255;
+        internal const double HeadSigma = .007;
+        internal const double TailStrokePixels = .5;
+        internal const double HeadStrokePixels = 1.4;
+        internal const double HeadHaloPixels = 3.0;
+        private const double TailLength = .92;
+        private const double TailDecay = 1.10;
+        private const int MaximumTailAlpha = 108;
+        private const int MaximumHeadStrokeAlpha = 238;
+        private const int MaximumHeadHaloAlpha = 52;
+        private const int MaximumContrastHeadAlpha = 102;
+        private const int MaximumContrastTailAlpha = 43;
         private const double FrameInterval = 1.0 / 30;
         public static readonly DependencyProperty IsHoveringProperty = DependencyProperty.Register(
             nameof(IsHovering), typeof(bool), typeof(GlassHoverOutline), new PropertyMetadata(false, StateChanged));
@@ -31,11 +38,21 @@ namespace DDay3.Controls
         private readonly List<Point> points = new List<Point>();
         private readonly List<double> distances = new List<double>();
         private readonly Pen[] pens = new Pen[MaximumHeadAlpha + 1];
+        private readonly Pen[] headPens = new Pen[MaximumHeadStrokeAlpha + 1];
+        private readonly Pen[] haloPens = new Pen[MaximumHeadHaloAlpha + 1];
+        private readonly Pen[] contrastHeadPens = new Pen[MaximumContrastHeadAlpha + 1];
+        private readonly Pen[] contrastTailPens = new Pen[MaximumContrastTailAlpha + 1];
+        private StrokeAlphas[] frameAlphas;
+        private struct StrokeAlphas
+        {
+            internal int Center, Core, Halo, ContrastHead, ContrastTail;
+        }
         internal bool IsAnimating { get { return rendering; } }
         internal int RenderedFrameCount { get; private set; }
         internal Func<bool> HoverProbe { get; set; }
         private Window owner;
         private double cachedWidth = -1, cachedHeight, cachedRadius, cachedDpi, perimeter;
+        private double cachedPenDpi = -1;
         private double envelope, transitionFrom, transitionAt, nextFrameAt;
         private bool target, rendering;
 
@@ -125,8 +142,28 @@ namespace DDay3.Controls
                 for (int i = 1; i < points.Count; i++)
                 {
                     double fraction = (distances[i - 1] + distances[i]) / (2 * perimeter);
-                    int alpha = ReflectionAlpha(fraction, phase, envelope);
-                    if (alpha > 0) dc.DrawLine(pens[alpha], points[i - 1], points[i]);
+                    double head = HeadWeight(fraction, phase), tail = TailWeight(fraction, phase);
+                    StrokeAlphas sample = new StrokeAlphas {
+                        Center = ScaledAlpha(head * MaximumHeadAlpha + (1 - head) * MaximumTailAlpha * tail, envelope),
+                        Core = ScaledAlpha(head * MaximumHeadStrokeAlpha, envelope),
+                        Halo = ScaledAlpha(head * MaximumHeadHaloAlpha, envelope),
+                        ContrastHead = ScaledAlpha(head * MaximumContrastHeadAlpha, envelope),
+                        ContrastTail = ScaledAlpha((1 - head) * MaximumContrastTailAlpha * tail, envelope)
+                    };
+                    frameAlphas[i - 1] = sample;
+                    // A thin moving neutral rim separates white light from pale faces
+                    // and wallpaper. It is not a static border or a blurred shadow.
+                    if (sample.ContrastTail > 0) dc.DrawLine(contrastTailPens[sample.ContrastTail], points[i - 1], points[i]);
+                    if (sample.ContrastHead > 0) dc.DrawLine(contrastHeadPens[sample.ContrastHead], points[i - 1], points[i]);
+                }
+                // Complete the contrast pass first: round segment ends must never
+                // paint gray over the bright white core of a preceding segment.
+                for (int i = 1; i < points.Count; i++)
+                {
+                    StrokeAlphas sample = frameAlphas[i - 1];
+                    if (sample.Halo > 0) dc.DrawLine(haloPens[sample.Halo], points[i - 1], points[i]);
+                    if (sample.Core > 0) dc.DrawLine(headPens[sample.Core], points[i - 1], points[i]);
+                    if (sample.Center > 0) dc.DrawLine(pens[sample.Center], points[i - 1], points[i]);
                 }
                 RenderedFrameCount++;
             }
@@ -135,18 +172,33 @@ namespace DDay3.Controls
         {
             // Positive lag is behind the clockwise-moving head. Wrap across the seam
             // so the tail follows continuously through the top-left contour origin.
-            double lag = phase - fraction;
-            lag -= Math.Floor(lag);
-            double headDistance = Math.Min(lag, 1 - lag);
-            double head = Math.Exp(-.5 * headDistance * headDistance / (HeadSigma * HeadSigma));
-            double tail = lag > 0 && lag < TailLength
-                ? Math.Exp(-lag / TailDecay) * (1 - lag / TailLength)
-                : 0;
-            // Whiten a compact section of the same one-pixel line; no larger head,
-            // glow, blur, extra outline or change to the underlying glass surface.
+            double head = HeadWeight(fraction, phase);
+            double tail = TailWeight(fraction, phase);
+            // Keep white intensity while halving the geometric dimensions.
             double alpha = head * MaximumHeadAlpha + (1 - head) * MaximumTailAlpha * tail;
-            return (int)Math.Round(alpha * Math.Max(0, Math.Min(1, envelope)));
+            return ScaledAlpha(alpha, envelope);
         }
+        private static double TailWeight(double fraction, double phase)
+        {
+            double lag = phase - fraction; lag -= Math.Floor(lag);
+            return lag > 0 && lag < TailLength ? Math.Exp(-lag / TailDecay) * (1 - lag / TailLength) : 0;
+        }
+        private static int ScaledAlpha(double alpha, double envelope)
+        { return (int)Math.Round(alpha * Math.Max(0, Math.Min(1, envelope))); }
+        private static double HeadWeight(double fraction, double phase)
+        {
+            double lag = phase - fraction; lag -= Math.Floor(lag);
+            double distance = Math.Min(lag, 1 - lag);
+            return Math.Exp(-.5 * distance * distance / (HeadSigma * HeadSigma));
+        }
+        internal static int HeadStrokeAlpha(double fraction, double phase, double envelope)
+        { return ScaledAlpha(MaximumHeadStrokeAlpha * HeadWeight(fraction, phase), envelope); }
+        internal static int HeadHaloAlpha(double fraction, double phase, double envelope)
+        { return ScaledAlpha(MaximumHeadHaloAlpha * HeadWeight(fraction, phase), envelope); }
+        internal static int ContrastHeadAlpha(double fraction, double phase, double envelope)
+        { return ScaledAlpha(MaximumContrastHeadAlpha * HeadWeight(fraction, phase), envelope); }
+        internal static int ContrastTailAlpha(double fraction, double phase, double envelope)
+        { return ScaledAlpha(MaximumContrastTailAlpha * (1 - HeadWeight(fraction, phase)) * TailWeight(fraction, phase), envelope); }
         private void BuildContour(double radius, double dpi)
         {
             cachedWidth = ActualWidth; cachedHeight = ActualHeight; cachedRadius = radius; cachedDpi = dpi;
@@ -166,12 +218,30 @@ namespace DDay3.Controls
                 }
                 if (figure.IsClosed) AddEdge(figure.StartPoint);
             }
+            frameAlphas = new StrokeAlphas[Math.Max(0, points.Count - 1)];
+            EnsurePens(dpi);
+        }
+        private void EnsurePens(double dpi)
+        {
+            if (cachedPenDpi == dpi) return;
+            cachedPenDpi = dpi;
             for (int alpha = 1; alpha < pens.Length; alpha++)
-            {
-                var brush = new SolidColorBrush(Color.FromArgb((byte)alpha, 255, 255, 255)); brush.Freeze();
-                var pen = new Pen(brush, 1.0 / dpi);
-                pen.Freeze(); pens[alpha] = pen;
-            }
+                pens[alpha] = CometPen(alpha, TailStrokePixels / dpi);
+            for (int alpha = 1; alpha < headPens.Length; alpha++)
+                headPens[alpha] = CometPen(alpha, HeadStrokePixels / dpi);
+            for (int alpha = 1; alpha < haloPens.Length; alpha++)
+                haloPens[alpha] = CometPen(alpha, HeadHaloPixels / dpi);
+            for (int alpha = 1; alpha < contrastHeadPens.Length; alpha++)
+                contrastHeadPens[alpha] = CometPen(alpha, 2.2 / dpi, true);
+            for (int alpha = 1; alpha < contrastTailPens.Length; alpha++)
+                contrastTailPens[alpha] = CometPen(alpha, 1.3 / dpi, true);
+        }
+        private static Pen CometPen(int alpha, double width, bool contrast = false)
+        {
+            Color color = contrast ? Color.FromArgb((byte)alpha, 40, 44, 50) : Color.FromArgb((byte)alpha, 255, 255, 255);
+            var brush = new SolidColorBrush(color); brush.Freeze();
+            var pen = new Pen(brush, width) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+            pen.Freeze(); return pen;
         }
         private void AddPoint(Point point)
         {
@@ -181,7 +251,7 @@ namespace DDay3.Controls
         private void AddEdge(Point end)
         {
             Point start = points[points.Count - 1];
-            int steps = Math.Max(1, (int)Math.Ceiling((end - start).Length / 3));
+            int steps = Math.Max(1, (int)Math.Ceiling((end - start).Length * cachedDpi / 2));
             for (int step = 1; step <= steps; step++) AddPoint(start + (end - start) * (step / (double)steps));
         }
     }

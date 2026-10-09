@@ -1,4 +1,4 @@
-# 기존 저장소에 3.5.0 반영
+# 기존 저장소에 3.5.4 반영
 
 GitHub 공개용 ZIP의 `MyDDayWidget-Source` 폴더 **안의 파일**을 기존 로컬 저장소에 복사합니다. 기존 Git 기록을 유지하고 새 저장소 생성 메뉴를 사용하지 않습니다.
 
@@ -6,11 +6,11 @@ GitHub 공개용 ZIP의 `MyDDayWidget-Source` 폴더 **안의 파일**을 기존
 
 1. 기존 로컬 저장소와 `DDay3.sln`을 엽니다. 작업 중인 변경은 먼저 보존합니다.
 2. 공개용 파일을 덮어쓰고 아래 이전 파일 정리를 수행합니다. ZIP 자체를 저장소 안에 넣지 않습니다.
-3. Git 변경 내용에서 수정/추가/삭제를 검토하고 `Release D-Day 3 3.5.0`으로 커밋합니다.
+3. Git 변경 내용에서 수정/추가/삭제를 검토하고 `Release D-Day 3 3.5.4`으로 커밋합니다.
 4. Fetch/Pull로 원격 변경을 확인하고 필요하면 충돌을 해결한 뒤 기존 `origin`으로 Push합니다.
 5. 로컬에서 `build-release.bat`를 실행하고 생성한 ZIP의 실행·URL 구독·갱신·달력/D-Day를 확인합니다.
-6. GitHub Releases에서 태그 **3.5.0**을 최신 커밋에 만들고 `RELEASE_NOTES.md`를 본문으로 사용합니다. 태그에 `v`를 붙이지 않습니다.
-7. `artifacts/v3.5.0`의 `DDay3-v3.5.0-win-x64.zip`, `DDay3_SHA256.txt`, 필요하면 `DDay3.exe`를 첨부합니다. 실행 안내는 항상 전체 포터블 ZIP을 기준으로 합니다.
+6. GitHub Releases에서 태그 **3.5.4**을 최신 커밋에 만들고 `RELEASE_NOTES.md`를 본문으로 사용합니다. 태그에 `v`를 붙이지 않습니다.
+7. `artifacts/v3.5.4`의 `DDay3-v3.5.4-win-x64.zip`, `DDay3_SHA256.txt`, 필요하면 `DDay3.exe`를 첨부합니다. 실행 안내는 항상 전체 포터블 ZIP을 기준으로 합니다.
 8. Release 게시와 자산 다운로드를 확인한 뒤 MathTime의 `dday.html`을 교체합니다. 페이지의 파일명과 Release 자산 이름을 정확히 맞춥니다.
 
 ## 이전 공개 파일 정리
@@ -44,11 +44,15 @@ git remote add origin https://github.com/lottoria-dev/MyDDayWidget-Source.git
 ```cmd
 git add -A
 git diff --cached --stat
-git commit -m "Release D-Day 3 3.5.0"
+git commit -m "Release D-Day 3 3.5.4"
 git pull --rebase origin main
 git push -u origin main
 ```
 
-원격에서 해당 브랜치가 아직 없으면 Pull은 생략합니다. Rebase 충돌이 나면 해결하고 `git rebase --continue`를 완료한 뒤 Push합니다. 이미 게시한 3.5.0 태그를 바꾸지 않고 이후 소규모 개선은 3.5.1로 진행합니다.
+원격에서 해당 브랜치가 아직 없으면 Pull은 생략합니다. Rebase 충돌이 나면 해결하고 `git rebase --continue`를 완료한 뒤 Push합니다. 이미 게시한 3.5.4 태그를 바꾸지 않고 이후 소규모 개선은 3.5.5로 진행합니다.
 
 URL 구독은 OAuth JSON·Google 인증 심사와 무관하게 동작합니다. 보류한 Google 코드는 기본 빌드에서 제외하며, 실제 구독 주소와 개인 자료를 Git에 넣지 않습니다.
+
+## 버전 히스토리 갱신
+
+앱을 바꿀 때 CHANGELOG.md 맨 위에 새 버전·날짜·변경 사항을 추가하고 RELEASE_NOTES.md와 README의 현재 버전을 맞춥니다. 공개 소스와 배포 ZIP에 CHANGELOG.md를 포함합니다. MathTime에서는 최신 변경 사항과 이전 버전 요약을 같은 내용으로 갱신합니다. 소규모 개선은 3.5.5처럼 마지막 번호를 올리고 GitHub 태그에는 v를 붙이지 않습니다.

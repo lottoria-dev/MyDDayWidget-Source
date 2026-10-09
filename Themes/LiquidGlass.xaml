@@ -9,6 +9,41 @@
 
     <SolidColorBrush x:Key="WindowVeilBrush" Color="#F3F8FBFF"/>
 
+    <!-- These context menus contain commands only; there is no icon/check column. -->
+    <Style x:Key="TextOnlyMenuItemStyle" TargetType="MenuItem">
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template"><Setter.Value>
+            <ControlTemplate TargetType="MenuItem">
+                <Border x:Name="MenuRow" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="MenuRow" Property="Background" Value="#28315F9F"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value></Setter>
+    </Style>
+    <Style TargetType="ContextMenu">
+        <Setter Property="Template"><Setter.Value>
+            <ControlTemplate TargetType="ContextMenu">
+                <Border Background="{TemplateBinding Background}" BorderBrush="#7097A9B8"
+                    BorderThickness="1" CornerRadius="8" Padding="4">
+                    <ItemsPresenter/>
+                </Border>
+            </ControlTemplate>
+        </Setter.Value></Setter>
+        <Style.Resources>
+            <Style x:Key="{x:Static MenuItem.SeparatorStyleKey}" TargetType="Separator">
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Separator">
+                    <Border Height="1" Margin="6,4" Background="#3697A9B8"/>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
+        </Style.Resources>
+    </Style>
+
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Malgun Gothic"/>
         <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>

@@ -24,6 +24,8 @@ namespace DDay3.Controls
         private static readonly Brush WhiteOutlineBrush = Frozen(new SolidColorBrush(Color.FromArgb(GlassReflection.OutlineAlpha, 255, 255, 255)));
         private bool lightingSet, reflectionDirty = true;
         private Color reflectionColor;
+        private Color refractionColor;
+        private double refractionStrength;
         private double lightAngle, layerOpacity, designRadius = BackgroundRadius;
         private int relief;
         private Geometry cachedOutline;
@@ -40,7 +42,8 @@ namespace DDay3.Controls
             internal float Distance, NormalX, NormalY;
         }
 
-        internal void SetLighting(Color color, double angle, double opacity, int depth, double referenceRadius, bool background = false)
+        internal void SetLighting(Color color, double angle, double opacity, int depth, double referenceRadius, bool background = false,
+            Color? pastelColor = null, string pastelMode = "off", double pastelWeight = 1)
         {
             int normalizedDepth = GlassLighting.NormalizeDepth(depth, background);
             double direction = GlassLighting.NormalizeDirection(angle);
@@ -48,11 +51,14 @@ namespace DDay3.Controls
             double radius = Math.Max(1, referenceRadius);
             Color light = Color.FromRgb((byte)((color.R + 510) / 3),
                 (byte)((color.G + 510) / 3), (byte)((color.B + 510) / 3));
+            Color pastel = pastelColor ?? Colors.White;
+            double strength = GlassRefraction.Strength(pastelMode, pastelWeight);
             if (lightingSet && reflectionColor == light && lightAngle == direction && layerOpacity == alpha
-                && relief == normalizedDepth && designRadius == radius) return;
+                && relief == normalizedDepth && designRadius == radius && refractionColor == pastel && refractionStrength == strength) return;
             lightingSet = true;
             reflectionColor = light; lightAngle = direction; layerOpacity = alpha;
             relief = normalizedDepth; designRadius = radius;
+            refractionColor = pastel; refractionStrength = strength;
             reflectionDirty = true;
             InvalidateVisual();
         }
@@ -125,24 +131,37 @@ namespace DDay3.Controls
             byte[] pixels = new byte[pixelWidth * pixelHeight * 4];
             double scale = Math.Max(.3, CornerRadius.TopLeft / designRadius);
             var profile = new GlassReflection(lightAngle, relief, scale, pixelSize, layerOpacity);
+            double gain = GlassRefraction.Gain(refractionStrength);
+            double colorWeight = GlassRefraction.ColorWeight(refractionStrength);
             foreach (EdgePixel point in edgePixels)
             {
                 double light, shade;
                 profile.Sample(point.Distance, point.NormalX, point.NormalY, out light, out shade);
+                light *= gain;
                 byte alpha = (byte)Math.Max(0, Math.Min(255, Math.Round(light + shade)));
                 int at = point.Offset;
                 // The signed normal selects either reflected light or at most 8/255
                 // neutral contact shade, never an external or blurred drop shadow.
                 byte reflectedAlpha = light > 0 ? alpha : (byte)0;
-                pixels[at] = (byte)((reflectionColor.B * reflectedAlpha + 127) / 255);
-                pixels[at + 1] = (byte)((reflectionColor.G * reflectedAlpha + 127) / 255);
-                pixels[at + 2] = (byte)((reflectionColor.R * reflectedAlpha + 127) / 255);
+                double white = GlassRefraction.WhiteMix(point.Distance, scale, relief);
+                byte blue = RefractionChannel(reflectionColor.B, refractionColor.B, white, colorWeight);
+                byte green = RefractionChannel(reflectionColor.G, refractionColor.G, white, colorWeight);
+                byte red = RefractionChannel(reflectionColor.R, refractionColor.R, white, colorWeight);
+                pixels[at] = (byte)((blue * reflectedAlpha + 127) / 255);
+                pixels[at + 1] = (byte)((green * reflectedAlpha + 127) / 255);
+                pixels[at + 2] = (byte)((red * reflectedAlpha + 127) / 255);
                 pixels[at + 3] = alpha;
             }
             reflectionImage = BitmapSource.Create(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32, null, pixels, pixelWidth * 4);
             reflectionImage.Freeze();
             reflectionDirty = false;
             ReflectionBuildCount++;
+        }
+
+        private static byte RefractionChannel(byte original, byte pastel, double white, double weight)
+        {
+            double tinted = pastel + (255 - pastel) * white;
+            return (byte)Math.Round(original + (tinted - original) * weight);
         }
 
         private void DrawWhiteOutline(DrawingContext dc, Geometry outline, double pixelsPerDip)

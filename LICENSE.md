@@ -71,7 +71,7 @@ Copyright (c) 2026 lottoria-dev. All rights reserved.
 
 ## 7. 제3자 소프트웨어와 오픈 소스 권리
 
-D-Day 3 v3.5.0은 사용자의 Windows에 설치된 .NET Framework 4.8 및 WPF/Windows Forms를 사용합니다. Microsoft 런타임은 소스 묶음에 포함하지 않으며 .NET Framework에는 해당 Microsoft 사용 조건이 적용됩니다. ICS 처리에 쓰는 Ical.Net·NodaTime·System.Runtime.CompilerServices.Unsafe는 빌드 시 NuGet에서 복원하고 실행 배포 ZIP에는 해당 DLL을 포함합니다. 각 라이브러리의 원 라이선스와 저작권 고지는 `THIRD_PARTY_NOTICES.md` 및 `licenses/`에 제공합니다. Qt/PySide6/Python은 v3 배포 묶음에 포함하지 않습니다.
+D-Day 3 v3.5.1은 사용자의 Windows에 설치된 .NET Framework 4.8 및 WPF/Windows Forms를 사용합니다. Microsoft 런타임은 소스 묶음에 포함하지 않으며 .NET Framework에는 해당 Microsoft 사용 조건이 적용됩니다. ICS 처리에 쓰는 Ical.Net·NodaTime·System.Runtime.CompilerServices.Unsafe는 빌드 시 NuGet에서 복원하고 실행 배포 ZIP에는 해당 DLL을 포함합니다. 각 라이브러리의 원 라이선스와 저작권 고지는 `THIRD_PARTY_NOTICES.md` 및 `licenses/`에 제공합니다. Qt/PySide6/Python은 v3 배포 묶음에 포함하지 않습니다.
 
 프로그램은 Consolas·Tahoma·맑은 고딕 등 설치된 글꼴을 이름으로 참조하며 글꼴 파일 자체는 배포하지 않습니다. 자세한 구성과 출처는 `THIRD_PARTY_NOTICES.md`를 확인하십시오.
 

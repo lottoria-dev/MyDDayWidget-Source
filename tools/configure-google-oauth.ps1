@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][string]$ClientJson)
+﻿param([Parameter(Mandatory = $true)][string]$ClientJson)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $path = (Resolve-Path -LiteralPath $ClientJson).Path

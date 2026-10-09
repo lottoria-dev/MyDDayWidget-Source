@@ -53,6 +53,17 @@ namespace DDay3.Services
             return Frozen(new SolidColorBrush(Color.FromArgb(alpha, tint.R, tint.G, tint.B)));
         }
 
+        internal static Brush CreateUpcomingCapsuleBrush(AppSettings settings)
+        {
+            Color accent = ParseColor(settings.GlassLightColor, Colors.LightGray);
+            Color highlight = ParseColor(DDayHighlightPolicy.Background(settings), Color.FromRgb(201, 169, 107));
+            Color tint = Blend(Blend(accent, highlight, 0.65), Colors.White, 0.18);
+            double strength = Math.Max(0.10, Math.Min(1.0, settings.GlassStrength));
+            // A restrained tint in the existing transparent surface, never an opaque alert card.
+            byte alpha = (byte)Math.Round((24 + 34 * strength) * settings.DDayPanelOpacity);
+            return Frozen(new SolidColorBrush(Color.FromArgb(alpha, tint.R, tint.G, tint.B)));
+        }
+
         internal static Brush CreateCardBorder(double opacity)
         {
             return Frozen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(40 * opacity), 255, 255, 255)));
