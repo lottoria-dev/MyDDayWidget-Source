@@ -39,7 +39,6 @@ namespace DDay3.Views
         private readonly StopwatchSession stopwatch = new StopwatchSession();
         private double designHeight = 250;
         private double designWidth = 350;
-        private double rowHeight;
         private double currentScale = 1;
         private DateTime lastCountDate = DateTime.MinValue;
         private int holidayRequestVersion;
@@ -149,7 +148,6 @@ namespace DDay3.Views
             CalendarHost.Visibility = settings.ShowCalendar ? Visibility.Visible : Visibility.Collapsed;
 
             if (resetCarousel) carousel.Reset();
-            rowHeight = MeasureScheduleRowHeight();
             RebuildDDayItems();
             UpdateCalendarMarks();
             UpdateClockAndCounts(true);
@@ -349,7 +347,6 @@ namespace DDay3.Views
                 GlassPanel capsule = new GlassPanel
                 {
                     Child = row,
-                    Height = rowHeight,
                     Margin = new Thickness(2, 2, 2, 2),
                     Padding = SchedulePadding(1),
                     CornerRadius = new CornerRadius(GlassPanel.ScheduleRadius),
@@ -360,6 +357,8 @@ namespace DDay3.Views
                 ApplyPanelLighting(capsule, settings, settings.DDayPanelOpacity, settings.DDayPanelDepth, GlassPanel.ScheduleRadius);
                 DDayItemsPanel.Children.Add(capsule);
             }
+            // Rebuilt rows must be final-size before their first frame, including imports.
+            ApplyScheduleLayout(currentScale);
         }
 
         private void UpdateClockAndCounts(bool force)
@@ -847,6 +846,14 @@ namespace DDay3.Views
                 button.FontSize = 12 * scale; button.Margin = new Thickness(4 * scale);
                 button.Padding = new Thickness(12 * scale, 3 * scale, 12 * scale, 3 * scale);
             }
+            ApplyScheduleLayout(scale);
+            CalendarHost.Margin = new Thickness(0, 7 * scale, 0, 0);
+            CalendarView.Margin = new Thickness(0);
+            CalendarView.ApplyScale(scale);
+        }
+
+        private void ApplyScheduleLayout(double scale)
+        {
             double finalRowHeight = MeasureScheduleRowHeight(scale);
             foreach (Border capsule in DDayItemsPanel.Children.OfType<Border>())
             {
@@ -864,9 +871,6 @@ namespace DDay3.Views
                 ((TextBlock)right.Children[0]).FontSize = settings.SizeDDayCount * 96.0 / 72.0 * scale;
                 ((TextBlock)right.Children[1]).FontSize = settings.SizeDDayDate * 96.0 / 72.0 * scale;
             }
-            CalendarHost.Margin = new Thickness(0, 7 * scale, 0, 0);
-            CalendarView.Margin = new Thickness(0);
-            CalendarView.ApplyScale(scale);
         }
 
         private static Thickness SchedulePadding(double scale)
@@ -966,24 +970,31 @@ namespace DDay3.Views
                 var dialog = new CalendarDayWindow(AppServices.IcsCalendars, date, settings.Items, settings.DateFormat) { Owner = this };
                 if (dialog.ShowDialog() != true) return;
                 if (dialog.ManualEntryRequested) { OpenSettings(date); return; }
-                SyncGeometry();
-                var next = settings.Clone();
-                int firstImported = next.Items.Count;
-                foreach (var item in dialog.SelectedEvents)
-                    if (!next.Items.Any(existing => existing.CalendarEventKey == item.Key))
-                        next.Items.Add(new DDayItem { Title = item.Title, Date = item.Start.Date, CalendarEventKey = item.Key });
-                if (next.Items.Count == firstImported) return;
-                ConfigSaveResult saved = configuration.Save(next, true);
-                if (!saved.Success)
-                {
-                    MessageBox.Show(this, saved.Message, "D-Day 등록 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-                settings = next; ApplySettings(true); BuildContextMenu();
-                carousel.Move(firstImported, settings.Items.Count);
-                RebuildDDayItems(); UpdateClockAndCounts(true);
+                ImportCalendarEvents(dialog.SelectedEvents);
             }
             finally { calendarDialogOpen = false; }
+        }
+
+        // Shared registration path; the date chooser supplies selected title/date records.
+        internal int ImportCalendarEvents(IEnumerable<CalendarEvent> selectedEvents)
+        {
+            SyncGeometry();
+            var next = settings.Clone();
+            int firstImported = next.Items.Count;
+            foreach (var item in selectedEvents)
+                if (!next.Items.Any(existing => existing.CalendarEventKey == item.Key))
+                    next.Items.Add(new DDayItem { Title = item.Title, Date = item.Start.Date, CalendarEventKey = item.Key });
+            if (next.Items.Count == firstImported) return 0;
+            ConfigSaveResult saved = configuration.Save(next, true);
+            if (!saved.Success)
+            {
+                MessageBox.Show(this, saved.Message, "D-Day 등록 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return 0;
+            }
+            settings = next; ApplySettings(true); BuildContextMenu();
+            carousel.Move(firstImported, settings.Items.Count);
+            RebuildDDayItems(); UpdateClockAndCounts(true);
+            return next.Items.Count - firstImported;
         }
 
         private void CalendarView_OnDateContextRequested(object sender, CalendarDateEventArgs e)

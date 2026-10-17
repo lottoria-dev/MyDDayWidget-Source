@@ -18,10 +18,10 @@ namespace DDay3.Services
         internal static GoogleCalendarService GoogleCalendar { get; private set; }
 #endif
 
-        internal static void Initialize()
+        internal static void Initialize(string configDirectory = null)
         {
-            Log = DiagnosticLogFactory.Create();
-            Configuration = new ConfigurationService(Log);
+            Log = configDirectory == null ? DiagnosticLogFactory.Create() : NullDiagnosticLog.Instance;
+            Configuration = new ConfigurationService(Log, configDirectory);
             Startup = new StartupService(Log);
             Holidays = new KoreanHolidayService(Configuration.ConfigDirectory);
             SolarTerms = new KoreanHolidayService(Configuration.ConfigDirectory, kind: SpecialDateKind.SolarTerm);

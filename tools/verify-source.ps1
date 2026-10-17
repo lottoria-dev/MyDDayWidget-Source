@@ -30,7 +30,7 @@ if ($projectText -notmatch 'Compile Remove="Diagnostics\\DeveloperTraceLog.cs"')
     throw 'Release diagnostics exclusion is missing.'
 }
 if ($projectText -notmatch 'TRACE_DIAGNOSTICS') { throw 'Debug diagnostic symbol is missing.' }
-if ($projectText -notmatch '<Version>3\.5\.5</Version>') { throw 'Project version is not 3.5.5.' }
+if ($projectText -notmatch '<Version>3\.5\.6</Version>') { throw 'Project version is not 3.5.6.' }
 foreach ($frameworkAssembly in @('System.Web', 'System.Web.Extensions')) {
     if ($projectText -notmatch ('<Reference\s+Include="' + [Regex]::Escape($frameworkAssembly) + '"')) {
         throw "Missing framework reference required by Google JSON and WPF markup compilation: $frameworkAssembly"
@@ -57,7 +57,7 @@ if ($mainXaml -notmatch 'controls:GlassCalendar') { throw 'Dedicated calendar is
 if ($mainXaml -match '<Calendar\s') { throw 'OS calendar template returned to the widget.' }
 if ($mainXaml -notmatch 'controls:ClockText' -or $mainCode -notmatch 'PeriodFontSize') { throw 'Measured clock with small AM/PM is missing.' }
 if ($settingsCode -notmatch 'WeightCalendar') { throw 'Typography weight editor is missing.' }
-if ($configCode -notmatch 'schema_version = 17') { throw 'Configuration schema is not version 17.' }
+if ($configCode -notmatch 'schema_version = 18') { throw 'Configuration schema is not version 18.' }
 if (-not (Test-Path (Join-Path $root 'Services\GlassRefraction.cs')) -or $configCode -notmatch 'glass_refraction_color' -or $configCode -notmatch 'glass_refraction_mode') { throw 'Independent pastel refraction settings are missing.' }
 if ($settingsXaml -notmatch 'RefractionModeCombo' -or $settingsCode -notmatch 'PreviewGlassRefraction') { throw 'Pastel refraction controls or panel-only preview are missing.' }
 
@@ -109,7 +109,7 @@ if ($Configuration -eq 'Release') {
         if (-not (Test-Path (Join-Path (Split-Path $releaseExe) $dependency))) { throw "Missing ICS runtime dependency: $dependency" }
     }
     if ($assembly.GetType('DDay3.Diagnostics.DeveloperTraceLog', $false)) { throw 'Log backend is present in Release.' }
-    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($releaseExe).FileVersion -ne '3.5.5.0') { throw 'Unexpected executable version.' }
+    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($releaseExe).FileVersion -ne '3.5.6.0') { throw 'Unexpected executable version.' }
 }
 
 Write-Host "[OK] D-Day 3 source verification passed ($Configuration)."

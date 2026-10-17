@@ -8,11 +8,11 @@ namespace DDay3.Services
     {
         internal const string DefaultColor = "#7EC1EE";
         internal static string NormalizeMode(string mode)
-        { return mode == "off" || mode == "clear" ? mode : "soft"; }
+        { return mode == "off" || mode == "clear" || mode == "prism" ? mode : "soft"; }
         internal static double Strength(string mode, double weight)
         {
             if (double.IsNaN(weight) || double.IsInfinity(weight)) weight = 0;
-            return (mode == "off" ? 0 : mode == "clear" ? 1 : .3) * Math.Max(0, Math.Min(1, weight));
+            return (mode == "off" ? 0 : mode == "clear" || mode == "prism" ? 1 : .3) * Math.Max(0, Math.Min(1, weight));
         }
         internal static double Gain(double strength)
         { return 1 + .9 * Math.Max(0, Math.Min(1, strength)); }

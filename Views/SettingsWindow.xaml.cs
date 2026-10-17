@@ -101,6 +101,7 @@ namespace DDay3.Views
             RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "꺼짐 · 기본 반사광", Tag = "off" });
             RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "은은하게", Tag = "soft" });
             RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "선명하게", Tag = "clear" });
+            RefractionModeCombo.Items.Add(new ComboBoxItem { Content = "프리즘", Tag = "prism" });
             foreach (DDayHighlightPreset preset in DDayHighlightPolicy.Presets)
             {
                 StackPanel content = new StackPanel { Orientation = Orientation.Horizontal };
@@ -776,10 +777,20 @@ namespace DDay3.Views
         }
 
         private void RefractionMode_OnChanged(object sender, SelectionChangedEventArgs e)
-        { if (!isPopulating) PreviewRefraction(); }
+        { if (!isPopulating) { UpdateRefractionColors(); PreviewRefraction(); } }
+
+        private void VisibleDDayCountStep_OnClick(object sender, RoutedEventArgs e)
+        {
+            VisibleDDayCountInput.Commit();
+            double step = Convert.ToDouble(((Button)sender).Tag, CultureInfo.InvariantCulture);
+            VisibleDDayCountInput.Value += step; // IntegerInput clamps to 1..10.
+        }
 
         private void UpdateRefractionColors()
         {
+            bool singleColor = SelectedTag(RefractionModeCombo, "soft") != "prism";
+            RefractionColorPanel.IsEnabled = singleColor;
+            CustomRefractionColorButton.IsEnabled = singleColor;
             foreach (Button button in RefractionColorPanel.Children.OfType<Button>())
             {
                 bool selected = string.Equals(Convert.ToString(button.Tag), selectedRefractionColor, StringComparison.OrdinalIgnoreCase);

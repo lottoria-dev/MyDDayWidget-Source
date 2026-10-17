@@ -28,6 +28,7 @@ __pycache__/
 
 # Keep personal review and publishing files out of the public repository.
 AGENTS.md
+TESTING.md
 VALIDATION.md
 QA_README.md
 RELEASE_CHECKLIST.md

@@ -227,7 +227,7 @@ namespace DDay3.Services
                 settings.GlassStrength = ReadDouble(window, "glass_strength", settings.GlassStrength, 0.10, 1.0, warnings);
                 settings.GlassLightColor = ReadColor(window, "glass_light_color", settings.GlassLightColor, warnings);
                 settings.GlassRefractionColor = ReadColor(window, "glass_refraction_color", settings.GlassRefractionColor, warnings);
-                settings.GlassRefractionMode = ReadEnum(window, "glass_refraction_mode", "soft", new[] { "off", "soft", "clear" }, warnings);
+                settings.GlassRefractionMode = ReadEnum(window, "glass_refraction_mode", "soft", new[] { "off", "soft", "clear", "prism" }, warnings);
                 settings.GlassLightDirection = ReadDouble(window, "glass_light_direction", settings.GlassLightDirection, 0, 360, warnings);
                 settings.PanelDepth = ReadInt(window, "panel_depth", settings.PanelDepth, -100, 200, warnings);
                 settings.ClockPanelDepth = ReadInt(window, "clock_panel_depth", settings.ClockPanelDepth, -100, 100, warnings);
@@ -401,7 +401,7 @@ namespace DDay3.Services
         {
             StringBuilder text = new StringBuilder();
             text.AppendLine("[Meta]");
-            text.AppendLine("schema_version = 17");
+            text.AppendLine("schema_version = 18");
             text.AppendLine("saved_at = " + DateTimeOffset.Now.ToString("o"));
             text.AppendLine();
             text.AppendLine("[Window]");

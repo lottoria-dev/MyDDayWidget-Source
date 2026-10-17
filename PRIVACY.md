@@ -1,6 +1,6 @@
 # D-Day 3 개인정보 처리 안내
 
-적용일: 2026년 10월 3일 · 대상: Windows용 D-Day 3 3.5.1  
+적용일: 2026년 10월 17일 · 대상: Windows용 D-Day 3 3.5.6  
 운영자: MathTime (lottoria-dev) · 연락처: mathtime.ai@gmail.com
 
 ## 캘린더 파일·URL

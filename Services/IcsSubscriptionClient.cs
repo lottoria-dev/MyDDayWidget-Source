@@ -23,7 +23,7 @@ namespace DDay3.Services
                 AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false,
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
             }) { Timeout = Timeout.InfiniteTimeSpan };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("DDay3/3.5.5");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("DDay3/3.5.6");
         }
 
         internal static Uri ValidateAddress(string value)

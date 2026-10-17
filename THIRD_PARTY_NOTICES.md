@@ -1,4 +1,4 @@
-# 제3자 구성요소 안내 · D-Day 3 3.5.1
+# 제3자 구성요소 안내 · D-Day 3 3.5.6
 
 자체 소스에는 `LICENSE.md`가 적용됩니다. 아래 구성요소에는 각 원 라이선스가 적용되며 자체 소스의 재배포 제한으로 그 권리를 제한하지 않습니다.
 
@@ -29,7 +29,3 @@ Consolas·Tahoma·맑은 고딕 및 사용자가 선택한 시스템 글꼴은 �
 - 출처: https://www.data.go.kr/data/15012690/openapi.do
 
 사용자가 가져오는 ICS와 iCal URL은 해당 캘린더의 내보내기/공유 권한 및 이용 조건에 따릅니다. URL 요청은 .NET Framework의 System.Net.Http를 사용하며 새 NuGet 의존성을 추가하지 않습니다. 실제 개인 일정 파일은 배포하지 않습니다. Google API/OAuth SDK는 참조하지 않으며 OAuth 자체 구현은 기본 빌드에서 제외한 로드맵 코드입니다. 과거 v2의 Qt/PySide6/Python 고지는 해당 v2 배포본에 계속 적용됩니다.
-
-## 개발 검사
-
-코어 검사는 선택적으로 설치한 .NET 8 SDK와 그 SDK의 Roslyn 참조를 사용합니다. Windows 검사는 .NET Framework 4.8을 사용하며 ICS 검사 프로젝트는 앱과 같은 NuGet 버전을 복원합니다. 검사 실행 파일·SDK·컴파일러는 소스 ZIP에 넣지 않습니다.

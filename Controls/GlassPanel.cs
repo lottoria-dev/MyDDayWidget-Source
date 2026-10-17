@@ -26,6 +26,7 @@ namespace DDay3.Controls
         private Color reflectionColor;
         private Color refractionColor;
         private double refractionStrength;
+        private bool prismEnabled;
         private double lightStrength;
         private double lightAngle, layerOpacity, designRadius = BackgroundRadius;
         private int relief;
@@ -54,15 +55,17 @@ namespace DDay3.Controls
                 (byte)((color.G + 510) / 3), (byte)((color.B + 510) / 3));
             Color pastel = pastelColor ?? Colors.White;
             double strength = GlassRefraction.Strength(pastelMode, pastelWeight);
+            bool prism = pastelMode == "prism";
             double lightWeight = double.IsNaN(surfaceStrength) || double.IsInfinity(surfaceStrength)
                 ? .18 : Math.Max(.1, Math.Min(1, surfaceStrength));
             if (lightingSet && reflectionColor == light && lightAngle == direction && layerOpacity == alpha
                 && relief == normalizedDepth && designRadius == radius && refractionColor == pastel
-                && refractionStrength == strength && lightStrength == lightWeight) return;
+                && refractionStrength == strength && prismEnabled == prism && lightStrength == lightWeight) return;
             lightingSet = true;
             reflectionColor = light; lightAngle = direction; layerOpacity = alpha;
             relief = normalizedDepth; designRadius = radius;
             refractionColor = pastel; refractionStrength = strength;
+            prismEnabled = prism;
             lightStrength = lightWeight;
             reflectionDirty = true;
             InvalidateVisual();
@@ -138,16 +141,32 @@ namespace DDay3.Controls
             var profile = new GlassReflection(lightAngle, relief, scale, pixelSize, layerOpacity, lightStrength);
             double gain = GlassRefraction.Gain(refractionStrength);
             double colorWeight = GlassRefraction.ColorWeight(refractionStrength);
+            var prism = new GlassPrism(relief, scale, pixelSize, Math.Min(ActualWidth, ActualHeight), layerOpacity,
+                refractionStrength, lightStrength, lightAngle, ActualWidth, ActualHeight);
             foreach (EdgePixel point in edgePixels)
             {
                 double light, shade;
                 profile.Sample(point.Distance, point.NormalX, point.NormalY, out light, out shade);
                 light = Math.Max(0, Math.Min(232, light * gain));
+                int at = point.Offset;
+                if (prismEnabled)
+                {
+                    int index = at / 4;
+                    double x = (index % pixelWidth + .5) * ActualWidth / pixelWidth;
+                    double y = (index / pixelWidth + .5) * ActualHeight / pixelHeight;
+                    double mask = prism.ReflectionMask(point.Distance);
+                    PrismPixel split = GlassPrism.Composite(prism.Pixel(point.Distance, point.NormalX, point.NormalY, x, y),
+                        light * mask, shade * mask, reflectionColor.R, reflectionColor.G, reflectionColor.B);
+                    pixels[at] = split.Blue;
+                    pixels[at + 1] = split.Green;
+                    pixels[at + 2] = split.Red;
+                    pixels[at + 3] = split.Alpha;
+                    continue;
+                }
                 double wash = GlassRefraction.WashAlpha(point.Distance, profile.LightIncidence(point.NormalX, point.NormalY),
                     relief, scale, layerOpacity, refractionStrength, Math.Min(ActualWidth, ActualHeight));
                 double remaining = 1 - light / 255;
                 byte alpha = (byte)Math.Round(light + (wash + shade * (1 - wash / 255)) * remaining);
-                int at = point.Offset;
                 // The signed normal selects either reflected light or at most 8/255
                 // neutral contact shade, never an external or blurred drop shadow.
                 double white = GlassRefraction.WhiteMix(point.Distance, scale, relief);

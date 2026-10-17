@@ -6,7 +6,7 @@
         xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
         xmlns:controls="clr-namespace:DDay3.Controls"
         mc:Ignorable="d"
-        Title="D-Day 3"
+        Title="D-Day 3 · 3.5.6"
         Icon="/Assets/DDay3.png"
         Width="350" Height="250" MinWidth="180" MinHeight="64"
         WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True"

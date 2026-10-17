@@ -103,6 +103,6 @@ namespace DDay3.Views
         private void Permissions_OnClick(object sender, RoutedEventArgs e)
         { StartupService.OpenUrl("https://myaccount.google.com/connections"); }
         private void Privacy_OnClick(object sender, RoutedEventArgs e)
-        { StartupService.OpenUrl("https://mathtime.kr/dday-privacy.html"); }
+        { StartupService.OpenUrl("https://mathtime.kr/dday.html#dday-privacy"); }
     }
 }
