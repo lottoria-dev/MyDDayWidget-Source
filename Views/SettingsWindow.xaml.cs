@@ -434,8 +434,21 @@ namespace DDay3.Views
             try
             {
                 ResultSettings = CollectSettings();
+                MainWindow owner = Owner as MainWindow;
+                if (owner != null) owner.CaptureGeometry(ResultSettings);
                 if (deleteHolidayKey) AppServices.HolidayKeys.Delete();
                 else if (!string.IsNullOrWhiteSpace(HolidayKeyInput.Password)) AppServices.HolidayKeys.Write(HolidayKeyInput.Password);
+                ConfigSaveResult saved = configuration.Save(ResultSettings, true);
+                if (saved.RequiresRecoveryConfirmation)
+                {
+                    if (MessageBox.Show(this,
+                        "기존 설정 파일을 온전히 확인하지 못해 저장을 보호하고 있습니다.\n" +
+                        "선택한 백업·불러온 파일 또는 현재 목록을 확인하셨나요?\n\n" +
+                        "기존 파일과 백업을 Recovery 폴더에 별도로 보관한 뒤 현재 D-Day " + ResultSettings.Items.Count + "개의 설정으로 저장할까요?",
+                        "설정 복구 확인", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+                    saved = configuration.Save(ResultSettings, true, true);
+                }
+                if (!saved.Success) throw new InvalidOperationException(saved.Message);
                 DialogResult = true;
             }
             catch (Exception ex)
@@ -547,12 +560,30 @@ namespace DDay3.Views
 
         private void RestoreBackup_OnClick(object sender, RoutedEventArgs e)
         {
-            ConfigLoadResult result = configuration.RestoreLatestBackup();
-            if (result.Status != "backup_loaded")
+            var backups = configuration.GetBackupCandidates();
+            if (backups.Count == 0)
             {
-                MessageBox.Show(this, result.Message, "최근 백업 복원", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(this, "온전하게 읽을 수 있는 백업이 없습니다. 별도로 보관한 INI를 불러올 수 있습니다.",
+                    "백업 선택·복원", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
+            var chooser = new Window { Owner = this, Title = "백업 선택·복원", Width = 530, Height = 330,
+                MinWidth = 430, MinHeight = 260, WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                ShowInTaskbar = false, Background = (Brush)FindResource("WindowVeilBrush") };
+            var layout = new DockPanel { Margin = new Thickness(14) };
+            var note = new TextBlock { Text = "날짜와 D-Day 개수를 확인해 복원할 백업을 고르세요.\n선택 후 환경 설정의 저장을 누르면 적용됩니다.",
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) };
+            DockPanel.SetDock(note, Dock.Top); layout.Children.Add(note);
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var cancel = new Button { Content = "취소", IsCancel = true, MinWidth = 72 };
+            var apply = new Button { Content = "선택한 백업 불러오기", IsDefault = true };
+            buttons.Children.Add(cancel); buttons.Children.Add(apply); DockPanel.SetDock(buttons, Dock.Bottom); layout.Children.Add(buttons);
+            var list = new ListBox { ItemsSource = backups, DisplayMemberPath = "Description", SelectedIndex = 0,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch };
+            layout.Children.Add(list); chooser.Content = layout;
+            apply.Click += delegate { if (list.SelectedItem != null) chooser.DialogResult = true; };
+            if (chooser.ShowDialog() != true) return;
+            var result = (ConfigLoadResult)list.SelectedItem;
             PopulateFromSettings(result.Settings);
             AppServices.Log.Info("settings.backup.preview", "items=" + result.Settings.Items.Count);
         }

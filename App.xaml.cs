@@ -11,10 +11,10 @@ namespace DDay3
     public partial class App : Application
     {
         internal const string ProductName = "D-Day 3";
-        internal const string Version = "3.5.6";
+        internal const string Version = "3.5.7";
         private Mutex instanceMutex;
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
@@ -30,16 +30,14 @@ namespace DDay3
                 return;
             }
 
-            AppServices.Initialize();
-            RegisterExceptionHandlers();
-            AppServices.Log.Info("app.start",
-                "version=" + Version + ", startup=" + HasArgument(e.Args, "--startup") +
-                ", os=" + Environment.OSVersion.VersionString +
-                ", clr=" + Environment.Version);
-
             try
             {
-                ConfigLoadResult loadResult = AppServices.Configuration.Load();
+                AppServices.Initialize();
+                RegisterExceptionHandlers();
+                AppServices.Log.Info("app.start", "version=" + Version + ", startup=" + HasArgument(e.Args, "--startup"));
+                // Retry file access away from the UI thread while startup tools
+                // and security software finish opening their files.
+                ConfigLoadResult loadResult = await Task.Run(() => AppServices.Configuration.Load());
                 AppServices.Log.Info("config.load",
                     "status=" + loadResult.Status + ", items=" + loadResult.Settings.Items.Count);
 
@@ -59,7 +57,7 @@ namespace DDay3
             }
             catch (Exception ex)
             {
-                AppServices.Log.Error("app.start.failed", ex);
+                if (AppServices.Log != null) AppServices.Log.Error("app.start.failed", ex);
                 MessageBox.Show("프로그램을 시작하지 못했습니다.\n\n" + ex.Message,
                     ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(1);

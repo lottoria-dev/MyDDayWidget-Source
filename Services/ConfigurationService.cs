@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using DDay3.Diagnostics;
 using DDay3.Models;
 
@@ -16,6 +18,12 @@ namespace DDay3.Services
         internal string Source { get; set; }
         internal string Message { get; set; }
         internal bool SafeToAutoSave { get; set; }
+        internal string ContentHash { get; set; }
+        internal string Content { get; set; }
+        internal DateTimeOffset SavedAt { get; set; }
+        internal int SchemaVersion { get; set; }
+        public string Description { get { return SavedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss") +
+            " · D-Day " + Settings.Items.Count + "개 · " + Path.GetFileName(Source); } }
     }
 
     internal sealed class ConfigSaveResult
@@ -24,14 +32,22 @@ namespace DDay3.Services
         internal bool Skipped { get; set; }
         internal string Message { get; set; }
         internal string Path { get; set; }
+        internal bool RequiresRecoveryConfirmation { get; set; }
     }
 
     internal sealed class ConfigurationService
     {
         private const string ConfigFileName = "dday_config.ini";
         private const int BackupCount = 3;
+        private const int DailyBackupCount = 14;
         private readonly IDiagnosticLog log;
-        private bool safeToAutoSave = true;
+        private readonly object gate = new object();
+        private bool safeToAutoSave;
+        private string observedHash;
+        private readonly bool allowLegacyMigration;
+        private bool legacyUnavailable;
+
+        internal bool IsWriteProtected { get { return !safeToAutoSave; } }
 
         internal string ConfigDirectory { get; private set; }
         internal string ConfigPath { get; private set; }
@@ -39,97 +55,177 @@ namespace DDay3.Services
         internal ConfigurationService(IDiagnosticLog log, string configDirectory = null)
         {
             this.log = log;
+            allowLegacyMigration = configDirectory == null;
             ConfigDirectory = configDirectory ?? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "MyDDayWidget");
             Directory.CreateDirectory(ConfigDirectory);
             ConfigPath = Path.Combine(ConfigDirectory, ConfigFileName);
-            if (configDirectory == null) MigrateLegacyFileIfNeeded();
         }
 
         internal ConfigLoadResult Load()
         {
-            ConfigLoadResult primary = ReadFile(ConfigPath);
-            if (primary.Status == "ok" || primary.Status == "partial")
+            lock (gate) return LoadCore();
+        }
+
+        private ConfigLoadResult LoadCore()
+        {
+            safeToAutoSave = false;
+            ConfigLoadResult primary = ReadWithRetry(ConfigPath);
+            observedHash = primary.ContentHash;
+            if (primary.Status == "ok")
             {
                 safeToAutoSave = true;
                 primary.SafeToAutoSave = true;
+                TryDailyBackup(primary);
+                if (primary.SchemaVersion < 19) UpgradeLegacyIntegrity(primary);
                 return primary;
             }
 
-            if (primary.Status == "missing")
+            List<ConfigLoadResult> backups = GetBackupCandidatesCore();
+            if (backups.Count > 0)
             {
-                safeToAutoSave = true;
-                return new ConfigLoadResult
-                {
-                    Settings = AppSettings.CreateDefault(),
-                    Status = "defaults_new",
-                    Message = "새 기본 설정으로 시작합니다.",
-                    SafeToAutoSave = true
-                };
-            }
-
-            for (int i = 1; i <= BackupCount; i++)
-            {
-                string backup = BackupPath(i);
-                ConfigLoadResult recovered = ReadFile(backup);
-                if (recovered.Status != "ok" && recovered.Status != "partial") continue;
-                PreserveCorruptFile(ConfigPath);
+                ConfigLoadResult recovered = backups[0];
                 try
                 {
-                    AtomicWrite(ConfigPath, Serialize(recovered.Settings));
-                    recovered.Status = "backup_recovered";
-                    recovered.Message = Path.GetFileName(backup) + "에서 설정을 복구했습니다.";
-                    recovered.SafeToAutoSave = true;
-                    safeToAutoSave = true;
+                    using (OpenWriteGate())
+                    {
+                        if (primary.Status == "unavailable") throw new IOException("설정 파일에 접근할 수 없습니다.");
+                        EnsureUnchanged(primary);
+                        PreserveRecoveryFiles();
+                        string restoredContent = Serialize(recovered.Settings);
+                        AtomicWrite(ConfigPath, restoredContent);
+                        observedHash = Hash(restoredContent);
+                        safeToAutoSave = true;
+                        recovered.Status = "backup_recovered";
+                        recovered.SafeToAutoSave = true;
+                        recovered.Message = Path.GetFileName(recovered.Source) + "에서 설정을 복구했습니다. 이전 파일은 Recovery 폴더에 보관했습니다.";
+                        TryDailyBackup(recovered);
+                    }
                 }
                 catch (Exception ex)
                 {
                     recovered.Status = "backup_recovered_readonly";
-                    recovered.Message = "백업을 읽었지만 기본 설정 파일을 복구하지 못했습니다.";
                     recovered.SafeToAutoSave = false;
-                    safeToAutoSave = false;
+                    recovered.Message = "백업으로 표시하지만 파일 접근 문제로 저장을 보호하고 있습니다. 잠시 후 다시 실행하거나 설정에서 확인해 주세요.";
                     log.Error("config.recovery.write", ex);
                 }
                 return recovered;
             }
 
-            safeToAutoSave = false;
-            PreserveCorruptFile(ConfigPath);
+            // Legacy files are consulted only after this user's backups. A busy
+            // working directory must never win over an existing recovery copy.
+            if (primary.Status == "missing" && !HasConfigurationHistory())
+            {
+                ConfigLoadResult legacy = ReadLegacyConfiguration();
+                if (legacy != null)
+                {
+                    try
+                    {
+                        using (OpenWriteGate())
+                        {
+                            EnsureUnchanged(primary);
+                            string migratedContent = Serialize(legacy.Settings);
+                            AtomicWrite(ConfigPath, migratedContent);
+                            observedHash = Hash(migratedContent);
+                            safeToAutoSave = true;
+                            legacy.SafeToAutoSave = true;
+                            TryDailyBackup(legacy);
+                        }
+                    }
+                    catch (Exception ex)
+                    { legacy.SafeToAutoSave = false; log.Error("config.migrate.failed", ex); }
+                    legacy.Status = safeToAutoSave ? "ok" : "backup_recovered_readonly";
+                    legacy.Message = safeToAutoSave ? "기존 설정을 이어서 사용합니다." : "기존 설정을 읽었지만 파일 저장은 보호하고 있습니다.";
+                    return legacy;
+                }
+                // Unavailable legacy paths are not evidence of a first launch.
+                if (!legacyUnavailable)
+                {
+                    safeToAutoSave = true;
+                    return new ConfigLoadResult { Settings = AppSettings.CreateDefault(), Status = "defaults_new",
+                        Message = "새 기본 설정으로 시작합니다.", SafeToAutoSave = true };
+                }
+            }
+
+            try { PreserveRecoveryFiles(); } catch (Exception ex) { log.Error("config.preserve.failed", ex); }
             return new ConfigLoadResult
             {
-                Settings = AppSettings.CreateDefault(),
-                Status = "defaults_after_error",
-                Message = "설정 파일과 백업을 읽을 수 없어 기본값으로 실행합니다. 기존 파일은 덮어쓰지 않습니다.",
+                Settings = primary.Status == "partial" ? primary.Settings : AppSettings.CreateDefault(),
+                Status = "defaults_protected",
+                Message = "설정을 온전히 읽지 못해 임시 화면으로 실행합니다. 이동·종료·메뉴 조작으로 기존 파일과 백업을 덮어쓰지 않습니다. 설정에서 백업을 선택하거나 파일을 불러와 확인해 주세요.",
                 SafeToAutoSave = false
             };
         }
 
-        internal ConfigSaveResult Save(AppSettings settings, bool userInitiated)
+        internal ConfigSaveResult Save(AppSettings settings, bool userInitiated, bool confirmRecovery = false)
         {
-            if (!safeToAutoSave && !userInitiated)
+            lock (gate) return SaveCore(settings, userInitiated, confirmRecovery);
+        }
+
+        private ConfigSaveResult SaveCore(AppSettings settings, bool userInitiated, bool confirmRecovery)
+        {
+            if (!safeToAutoSave && !(userInitiated && confirmRecovery))
             {
                 return new ConfigSaveResult
                 {
                     Success = false,
-                    Skipped = true,
-                    Message = "손상된 설정 보호를 위해 자동 저장을 건너뛰었습니다."
+                    Skipped = !userInitiated,
+                    RequiresRecoveryConfirmation = true,
+                    Message = "설정 파일 보호로 저장을 중지했습니다. 설정에서 백업 또는 불러온 내용을 확인한 뒤 저장해 주세요."
                 };
             }
 
             try
             {
-                Normalize(settings);
-                RotateBackups();
-                AtomicWrite(ConfigPath, Serialize(settings));
-                safeToAutoSave = true;
-                log.Info("config.save", "items=" + settings.Items.Count + ", userInitiated=" + userInitiated);
-                return new ConfigSaveResult
+                using (OpenWriteGate())
                 {
-                    Success = true,
-                    Message = "설정을 저장했습니다.",
-                    Path = ConfigPath
-                };
+                    ConfigLoadResult current = ReadFile(ConfigPath);
+                    if (current.Status == "unavailable") throw new IOException("설정 파일에 접근할 수 없어 저장하지 않았습니다.");
+                    bool changedOutside = current.ContentHash != observedHash ||
+                        (current.Status != "ok" && current.Status != "missing") ||
+                        (current.Status == "missing" && observedHash == null && HasConfigurationHistory());
+                    if (changedOutside && !(userInitiated && confirmRecovery))
+                    {
+                        safeToAutoSave = false;
+                        return new ConfigSaveResult { Success = false, Skipped = !userInitiated,
+                            RequiresRecoveryConfirmation = true,
+                            Message = "실행 중 설정 파일이 변경되었거나 손상되어 저장을 보호했습니다. 설정에서 내용을 확인해 주세요." };
+                    }
+                    if (current.Status == "missing" && observedHash != null && !confirmRecovery)
+                    {
+                        safeToAutoSave = false;
+                        return new ConfigSaveResult { Success = false, Skipped = !userInitiated,
+                            RequiresRecoveryConfirmation = true, Message = "설정 파일이 없어져 저장을 보호했습니다." };
+                    }
+                    AppSettings next = settings.Clone();
+                    if (next.Items.Count == 0) throw new InvalidOperationException("D-Day 목록이 비어 있어 기존 설정을 보존했습니다.");
+                    Normalize(next);
+                    if (!userInitiated && current.Status == "ok" && !SchedulesEqual(current.Settings, next))
+                    {
+                        safeToAutoSave = false;
+                        return new ConfigSaveResult { Success = false, Skipped = true, RequiresRecoveryConfirmation = true,
+                            Message = "자동 저장 중 일정 목록 변경을 감지해 기존 파일을 보호했습니다." };
+                    }
+                    if (confirmRecovery) PreserveRecoveryFiles();
+                    if (current.Status == "ok")
+                    {
+                        EnsureDailyBackup(current);
+                        if (MeaningfulKey(current.Settings) != MeaningfulKey(next)) RotateBackups(current);
+                    }
+                    string content = Serialize(next);
+                    EnsureUnchanged(current);
+                    AtomicWrite(ConfigPath, content);
+                    observedHash = Hash(content);
+                    safeToAutoSave = true;
+                    log.Info("config.save", "items=" + settings.Items.Count + ", userInitiated=" + userInitiated);
+                    return new ConfigSaveResult
+                    {
+                        Success = true,
+                        Message = "설정을 저장했습니다.",
+                        Path = ConfigPath
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -141,7 +237,7 @@ namespace DDay3.Services
         internal ConfigLoadResult Import(string path)
         {
             ConfigLoadResult result = ReadFile(path);
-            if (result.Status == "ok" || result.Status == "partial")
+            if (result.Status == "ok")
             {
                 result.Status = "imported";
                 result.SafeToAutoSave = true;
@@ -149,49 +245,52 @@ namespace DDay3.Services
             return result;
         }
 
-        internal ConfigLoadResult RestoreLatestBackup()
-        {
-            for (int i = 1; i <= BackupCount; i++)
-            {
-                ConfigLoadResult result = ReadFile(BackupPath(i));
-                if (result.Status == "ok" || result.Status == "partial")
-                {
-                    result.Status = "backup_loaded";
-                    result.SafeToAutoSave = true;
-                    return result;
-                }
-            }
-            return new ConfigLoadResult
-            {
-                Settings = AppSettings.CreateDefault(),
-                Status = "backup_missing",
-                Message = "사용 가능한 설정 백업이 없습니다.",
-                SafeToAutoSave = false
-            };
-        }
-
         internal void Export(AppSettings settings, string destination)
         {
-            Normalize(settings);
-            AtomicWrite(destination, Serialize(settings));
+            string target = Path.GetFullPath(destination);
+            string directory = Path.GetFullPath(ConfigDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string name = Path.GetFileName(target);
+            if (string.Equals(target, ConfigPath, StringComparison.OrdinalIgnoreCase) ||
+                (target.StartsWith(directory, StringComparison.OrdinalIgnoreCase) &&
+                 (name.StartsWith("dday_config.bak", StringComparison.OrdinalIgnoreCase) ||
+                  name.StartsWith("dday_config.daily-", StringComparison.OrdinalIgnoreCase) ||
+                  target.StartsWith(Path.Combine(ConfigDirectory, "Recovery") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))))
+                throw new InvalidOperationException("운영 설정과 복구용 백업에는 내보낼 수 없습니다. 다른 파일 이름을 선택해 주세요.");
+            AppSettings copy = settings.Clone();
+            Normalize(copy);
+            AtomicWrite(destination, Serialize(copy));
             log.Info("config.export", "completed");
+        }
+
+        private ConfigLoadResult ReadWithRetry(string path)
+        {
+            ConfigLoadResult result = ReadFile(path);
+            foreach (int delay in new[] { 200, 500, 1000 })
+            {
+                if (result.Status == "ok") break;
+                Thread.Sleep(delay);
+                result = ReadFile(path);
+            }
+            return result;
         }
 
         private ConfigLoadResult ReadFile(string path)
         {
-            if (!File.Exists(path))
-            {
-                return new ConfigLoadResult { Settings = AppSettings.CreateDefault(), Status = "missing", Source = path };
-            }
-
+            string content = null;
             try
             {
-                Dictionary<string, Dictionary<string, string>> ini = ParseIni(File.ReadAllLines(path, Encoding.UTF8));
+                // Open directly: File.Exists also returns false for some access
+                // failures, which must not be confused with a new installation.
+                content = File.ReadAllText(path, new UTF8Encoding(false, true));
+                Dictionary<string, Dictionary<string, string>> ini = ParseIni(content.Split('\n'));
+                int schema = ValidateIntegrity(content, ini);
                 Dictionary<string, string> window;
                 if (!ini.TryGetValue("Window", out window)) throw new InvalidDataException("[Window] 구역이 없습니다.");
 
                 AppSettings settings = AppSettings.CreateDefault();
                 List<string> warnings = new List<string>();
+                foreach (string key in new[] { "x", "y", "w", "h" })
+                    if (!window.ContainsKey(key)) warnings.Add("창 설정 " + key + " 값이 누락되었습니다.");
                 settings.X = ReadInt(window, "x", settings.X, -100000, 100000, warnings);
                 settings.Y = ReadInt(window, "y", settings.Y, -100000, 100000, warnings);
                 settings.Width = ReadInt(window, "w", settings.Width, 180, 10000, warnings);
@@ -276,7 +375,8 @@ namespace DDay3.Services
                     string title;
                     string dateText;
                     DateTime date;
-                    if (!section.Value.TryGetValue("title", out title)) title = "D-Day";
+                    if (!section.Value.TryGetValue("title", out title) || string.IsNullOrWhiteSpace(title))
+                    { title = "D-Day"; warnings.Add(section.Key + " 제목이 누락되었습니다."); }
                     if (!section.Value.TryGetValue("date", out dateText) ||
                         !DateTime.TryParseExact(dateText, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                             DateTimeStyles.None, out date))
@@ -302,9 +402,19 @@ namespace DDay3.Services
                     Status = warnings.Count == 0 ? "ok" : "partial",
                     Source = path,
                     Message = string.Join(" ", warnings),
-                    SafeToAutoSave = true
+                    SafeToAutoSave = warnings.Count == 0,
+                    ContentHash = Hash(content), Content = content,
+                    SavedAt = ReadSavedAt(ini, path), SchemaVersion = schema
                 };
             }
+            catch (FileNotFoundException) { return FailedRead(path, "missing", content); }
+            catch (DirectoryNotFoundException) { return FailedRead(path, "missing", content); }
+            catch (InvalidDataException ex)
+            { log.Warn("config.invalid", Path.GetFileName(path)); return FailedRead(path, "error", content, ex.Message); }
+            catch (IOException ex)
+            { log.Error("config.unavailable", ex); return FailedRead(path, "unavailable", content); }
+            catch (UnauthorizedAccessException ex)
+            { log.Error("config.unavailable", ex); return FailedRead(path, "unavailable", content); }
             catch (Exception ex)
             {
                 log.Error("config.read.failed", ex, "file=" + Path.GetFileName(path));
@@ -314,14 +424,22 @@ namespace DDay3.Services
                     Status = "error",
                     Source = path,
                     Message = ex.Message,
-                    SafeToAutoSave = false
+                    SafeToAutoSave = false, Content = content, ContentHash = content == null ? null : Hash(content)
                 };
             }
         }
 
-        private void MigrateLegacyFileIfNeeded()
+        private static ConfigLoadResult FailedRead(string path, string status, string content, string message = null)
         {
-            if (File.Exists(ConfigPath)) return;
+            return new ConfigLoadResult { Settings = AppSettings.CreateDefault(), Status = status, Source = path,
+                Message = message ?? "설정 파일을 읽지 못했습니다.", SafeToAutoSave = false,
+                Content = content, ContentHash = content == null ? null : Hash(content) };
+        }
+
+        private ConfigLoadResult ReadLegacyConfiguration()
+        {
+            legacyUnavailable = false;
+            if (!allowLegacyMigration) return null;
             string executableDirectory = AppDomain.CurrentDomain.BaseDirectory;
             string[] candidates =
             {
@@ -330,26 +448,72 @@ namespace DDay3.Services
             };
             foreach (string candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (!File.Exists(candidate) || string.Equals(candidate, ConfigPath, StringComparison.OrdinalIgnoreCase)) continue;
+                if (string.Equals(candidate, ConfigPath, StringComparison.OrdinalIgnoreCase)) continue;
                 ConfigLoadResult result = ReadFile(candidate);
-                if (result.Status != "ok" && result.Status != "partial") continue;
-                File.Copy(candidate, ConfigPath, false);
-                log.Info("config.migrate", "legacy configuration copied");
-                break;
+                if (result.Status == "unavailable") result = ReadWithRetry(candidate);
+                if (result.Status == "ok") return result;
+                if (result.Status != "missing") legacyUnavailable = true;
             }
+            return null;
         }
 
-        private void RotateBackups()
+        private FileStream OpenWriteGate()
         {
-            if (!File.Exists(ConfigPath)) return;
-            ConfigLoadResult current = ReadFile(ConfigPath);
-            if (current.Status != "ok" && current.Status != "partial") return;
-            for (int i = BackupCount; i >= 2; i--)
+            return new FileStream(Path.Combine(ConfigDirectory, "dday_config.write.lock"),
+                FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        }
+
+        private void EnsureUnchanged(ConfigLoadResult expected)
+        {
+            ConfigLoadResult latest = ReadFile(ConfigPath);
+            if (latest.Status != expected.Status || latest.ContentHash != expected.ContentHash)
+                throw new IOException("저장 준비 중 설정 파일이 변경되어 저장을 중지했습니다.");
+        }
+
+        internal List<ConfigLoadResult> GetBackupCandidates()
+        {
+            lock (gate) return GetBackupCandidatesCore();
+        }
+
+        private List<ConfigLoadResult> GetBackupCandidatesCore()
+        {
+            var paths = new List<string>();
+            for (int i = 1; i <= BackupCount; i++) paths.Add(BackupPath(i));
+            try
             {
-                string source = BackupPath(i - 1);
-                if (File.Exists(source)) File.Copy(source, BackupPath(i), true);
+                paths.AddRange(Directory.GetFiles(ConfigDirectory, "dday_config.daily-*.ini"));
+                string recovery = Path.Combine(ConfigDirectory, "Recovery");
+                if (Directory.Exists(recovery)) paths.AddRange(Directory.GetFiles(recovery, "*.ini", SearchOption.AllDirectories));
             }
-            File.Copy(ConfigPath, BackupPath(1), true);
+            catch (IOException ex) { log.Error("config.backups.enumerate", ex); }
+            catch (UnauthorizedAccessException ex) { log.Error("config.backups.enumerate", ex); }
+            return paths.Distinct(StringComparer.OrdinalIgnoreCase).Select(ReadFile)
+                .Where(result => result.Status == "ok").OrderByDescending(result => result.SavedAt).ToList();
+        }
+
+        private bool HasConfigurationHistory()
+        {
+            try
+            {
+                return Directory.GetFiles(ConfigDirectory, "dday_config*")
+                    .Any(path => !path.EndsWith(".write.lock", StringComparison.OrdinalIgnoreCase)) ||
+                    Directory.Exists(Path.Combine(ConfigDirectory, "Recovery"));
+            }
+            catch (IOException) { return true; }
+            catch (UnauthorizedAccessException) { return true; }
+        }
+
+        private void RotateBackups(ConfigLoadResult current)
+        {
+            var snapshots = new List<ConfigLoadResult> { current };
+            var keys = new HashSet<string> { MeaningfulKey(current.Settings) };
+            for (int i = 1; i <= BackupCount; i++)
+            {
+                ConfigLoadResult prior = ReadFile(BackupPath(i));
+                if (prior.Status == "ok" && keys.Add(MeaningfulKey(prior.Settings))) snapshots.Add(prior);
+            }
+            for (int i = Math.Min(BackupCount, snapshots.Count); i >= 1; i--)
+                AtomicWrite(BackupPath(i), snapshots[i - 1].Content);
         }
 
         private string BackupPath(int index)
@@ -357,19 +521,123 @@ namespace DDay3.Services
             return Path.Combine(ConfigDirectory, "dday_config.bak" + index + ".ini");
         }
 
-        private void PreserveCorruptFile(string path)
+        private void TryDailyBackup(ConfigLoadResult current)
         {
-            if (!File.Exists(path)) return;
+            try { EnsureDailyBackup(current); }
+            catch (Exception ex) { log.Error("config.daily.failed", ex); }
+        }
+
+        private void UpgradeLegacyIntegrity(ConfigLoadResult current)
+        {
             try
             {
-                string destination = Path.Combine(ConfigDirectory,
-                    "dday_config.corrupt-" + DateTime.Now.ToString("yyyyMMdd-HHmmss-fff") + ".ini");
-                File.Copy(path, destination, false);
+                using (OpenWriteGate())
+                {
+                    EnsureDailyBackup(current);
+                    EnsureUnchanged(current);
+                    string content = Serialize(current.Settings);
+                    AtomicWrite(ConfigPath, content);
+                    current.Content = content;
+                    current.ContentHash = observedHash = Hash(content);
+                    current.SchemaVersion = 19;
+                }
             }
-            catch (Exception ex)
+            catch (Exception ex) { log.Error("config.integrity.upgrade", ex); }
+        }
+
+        private void EnsureDailyBackup(ConfigLoadResult current)
+        {
+            string path = Path.Combine(ConfigDirectory, "dday_config.daily-" + DateTime.Today.ToString("yyyyMMdd") + ".ini");
+            ConfigLoadResult existing = ReadFile(path);
+            if (existing.Status == "ok") return;
+            if (existing.Status == "unavailable") throw new IOException("일별 백업에 접근하지 못해 기존 파일을 보존했습니다.");
+            // Preserve a damaged daily copy before replacing it with known-good
+            // data. Otherwise one damaged backup could prevent every later save.
+            if (existing.Status != "missing") PreserveRecoveryFiles();
+            AtomicWrite(path, current.Content, existing.Status != "missing");
+            string[] old = Directory.GetFiles(ConfigDirectory, "dday_config.daily-*.ini")
+                .OrderByDescending(value => value, StringComparer.OrdinalIgnoreCase).Skip(DailyBackupCount).ToArray();
+            foreach (string prior in old) File.Delete(prior);
+        }
+
+        private void PreserveRecoveryFiles()
+        {
+            var paths = new List<string> { ConfigPath };
+            for (int i = 1; i <= BackupCount; i++) paths.Add(BackupPath(i));
+            paths.AddRange(Directory.GetFiles(ConfigDirectory, "dday_config.daily-*.ini"));
+            string destination = Path.Combine(ConfigDirectory, "Recovery",
+                DateTime.Now.ToString("yyyyMMdd-HHmmss-fff") + "-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(destination);
+            foreach (string path in paths)
             {
-                log.Error("config.preserve.failed", ex);
+                try
+                {
+                    using (var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (var output = new FileStream(Path.Combine(destination, Path.GetFileName(path)), FileMode.CreateNew,
+                        FileAccess.Write, FileShare.None))
+                    { source.CopyTo(output); output.Flush(true); }
+                }
+                catch (FileNotFoundException) { }
+                catch (DirectoryNotFoundException) { }
             }
+        }
+
+        private static string MeaningfulKey(AppSettings value)
+        {
+            string[] lines = Serialize(value).Replace("\r\n", "\n").Split('\n');
+            return Hash(string.Join("\n", lines.Where(line =>
+            {
+                int split = line.IndexOf('=');
+                string key = split < 0 ? line.Trim() : line.Substring(0, split).Trim();
+                return key != "saved_at" && key != "sha256" && key != "[Integrity]" &&
+                    key != "x" && key != "y" && key != "w" && key != "h";
+            })));
+        }
+
+        private static bool SchedulesEqual(AppSettings first, AppSettings second)
+        {
+            return first.Items.Count == second.Items.Count && first.Items.Zip(second.Items, (a, b) =>
+                a.Title == b.Title && a.Date.Date == b.Date.Date && a.CalendarEventKey == b.CalendarEventKey).All(equal => equal);
+        }
+
+        private static string Hash(string content)
+        {
+            using (SHA256 sha = SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(
+                    content.Replace("\r\n", "\n").TrimEnd('\n')))).Replace("-", "").ToLowerInvariant();
+        }
+
+        private static int ValidateIntegrity(string content, Dictionary<string, Dictionary<string, string>> ini)
+        {
+            Dictionary<string, string> meta;
+            string text;
+            int schema = 0;
+            if (ini.TryGetValue("Meta", out meta) && meta.TryGetValue("schema_version", out text))
+                if (!int.TryParse(text, out schema) || schema < 0 || schema > 19)
+                    throw new InvalidDataException("지원하지 않는 설정 형식입니다. 원본은 보존합니다.");
+            if (schema < 19) return schema; // Complete legacy data can be upgraded after a separate backup.
+            Dictionary<string, string> integrity;
+            string expected;
+            int count;
+            string canonical = content.Replace("\r\n", "\n");
+            int marker = canonical.IndexOf("\n[Integrity]\n", StringComparison.Ordinal);
+            if (marker < 0 || !ini.TryGetValue("Integrity", out integrity) || !integrity.TryGetValue("sha256", out expected) ||
+                !string.Equals(Hash(canonical.Substring(0, marker)), expected, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("설정 파일 무결성 검사를 통과하지 못했습니다.");
+            if (!meta.TryGetValue("dday_count", out text) || !int.TryParse(text, out count) || count < 1 ||
+                count != ini.Count(pair => pair.Key.StartsWith("DDay-", StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidDataException("저장된 D-Day 개수가 일치하지 않습니다.");
+            return schema;
+        }
+
+        private static DateTimeOffset ReadSavedAt(Dictionary<string, Dictionary<string, string>> ini, string path)
+        {
+            Dictionary<string, string> meta;
+            string value;
+            DateTimeOffset saved;
+            if (ini.TryGetValue("Meta", out meta) && meta.TryGetValue("saved_at", out value) &&
+                DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out saved)) return saved;
+            return new DateTimeOffset(File.GetLastWriteTimeUtc(path));
         }
 
         private static Dictionary<string, Dictionary<string, string>> ParseIni(string[] lines)
@@ -384,15 +652,18 @@ namespace DDay3.Services
                 if (line.StartsWith("[") && line.EndsWith("]"))
                 {
                     string name = line.Substring(1, line.Length - 2).Trim();
+                    if (name.Length == 0 || result.ContainsKey(name)) throw new InvalidDataException("설정 구역이 비어 있거나 중복됩니다.");
                     current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     result[name] = current;
                     continue;
                 }
-                if (current == null) continue;
+                if (current == null) throw new InvalidDataException("설정 파일의 시작 구역이 잘못되었습니다.");
                 int split = line.IndexOf('=');
                 if (split < 0) split = line.IndexOf(':');
-                if (split <= 0) continue;
-                current[line.Substring(0, split).Trim()] = line.Substring(split + 1).Trim();
+                if (split <= 0 || line.StartsWith("[")) throw new InvalidDataException("설정 파일의 일부가 잘렸거나 잘못되었습니다.");
+                string key = line.Substring(0, split).Trim();
+                if (current.ContainsKey(key)) throw new InvalidDataException("설정 항목이 중복됩니다.");
+                current[key] = line.Substring(split + 1).Trim();
             }
             return result;
         }
@@ -401,8 +672,9 @@ namespace DDay3.Services
         {
             StringBuilder text = new StringBuilder();
             text.AppendLine("[Meta]");
-            text.AppendLine("schema_version = 18");
+            text.AppendLine("schema_version = 19");
             text.AppendLine("saved_at = " + DateTimeOffset.Now.ToString("o"));
+            Write(text, "dday_count", value.Items.Count);
             text.AppendLine();
             text.AppendLine("[Window]");
             Write(text, "x", value.X);
@@ -481,6 +753,9 @@ namespace DDay3.Services
                 string googleKey = CalendarEvent.NormalizeKey(value.Items[i].CalendarEventKey);
                 if (googleKey.Length > 0) Write(text, "calendar_event_key", googleKey);
             }
+            string checksum = Hash(text.ToString());
+            text.AppendLine().AppendLine("[Integrity]");
+            Write(text, "sha256", checksum);
             return text.ToString();
         }
 
@@ -489,21 +764,28 @@ namespace DDay3.Services
             text.Append(key).Append(" = ").AppendLine(Convert.ToString(value, CultureInfo.InvariantCulture));
         }
 
-        private static void AtomicWrite(string path, string content)
+        private static void AtomicWrite(string path, string content, bool replaceExisting = true)
         {
             string directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
             string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            File.WriteAllText(temporary, content, new UTF8Encoding(false));
             try
             {
-                if (File.Exists(path)) File.Replace(temporary, path, null, true);
+                using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                    16384, FileOptions.WriteThrough))
+                {
+                    byte[] bytes = new UTF8Encoding(false).GetBytes(content);
+                    stream.Write(bytes, 0, bytes.Length);
+                    stream.Flush(true);
+                }
+                if (replaceExisting && File.Exists(path)) File.Replace(temporary, path, null, true);
                 else File.Move(temporary, path);
             }
-            catch
+            finally
             {
-                File.Copy(temporary, path, true);
-                File.Delete(temporary);
+                try { if (File.Exists(temporary)) File.Delete(temporary); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
             }
         }
 

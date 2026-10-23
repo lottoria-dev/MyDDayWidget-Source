@@ -1,4 +1,4 @@
-# D-Day 3 · 3.5.6
+# D-Day 3 · 3.5.7
 
 시계·음력·달력과 여러 D-Day를 투명한 유리 패널에 표시하는 Windows용 무료 위젯입니다.
 
@@ -7,23 +7,25 @@
 - 문의: mathtime.ai@gmail.com
 - 실행 환경: Windows 10/11 x64, .NET Framework 4.8 이상
 
-## 3.5.6 변경 사항
+## 3.5.7 변경 사항
 
-- 유리 모서리에 여러 색이 이어지는 **프리즘** 굴절광 추가. 양각·음각과 광원 방향에 따라 좁은 단면의 색과 반사 위치가 달라집니다.
-- 분광색의 농도를 절제하고 작은 백색 반사점을 더해 바탕화면과 자연스럽게 어울리도록 조정했습니다.
-- 캘린더에서 D-Day를 등록한 직후 글자가 커졌다가 휠 이동 후 정상 크기로 돌아오던 문제 수정.
-- **D-Day 표시 개수 [숫자] [+] [−]**로 한 번에 표시할 개수를 직접 입력하거나 조절할 수 있습니다.
+- 설정에서 날짜를 선택할 때 달력 상단의 연도와 월이 잘리지 않도록 수정했습니다.
+- 부팅 중 파일 접근이 지연되면 설정 읽기를 재시도하고, 원본이 없어도 정상 백업을 먼저 확인합니다.
+- 설정을 온전히 읽지 못하면 저장 보호 상태로 실행합니다. 이동·크기 조절·종료·메뉴 조작으로 기존 파일을 덮어쓰지 않습니다.
+- 위치·크기만 바꿀 때는 최근 3세대 백업을 교체하지 않습니다. 날짜별 최초 정상 사본도 최대 14개 보관합니다.
+- **백업 선택·복원…**에서 날짜와 D-Day 개수를 보고 복원할 사본을 선택합니다.
+- 설정 파일에 무결성 확인값과 D-Day 개수를 기록하고, 파일 교체 실패 시 원본을 일반 복사로 덮어쓰던 경로를 제거했습니다.
 
 전체 정식 버전 이력은 [CHANGELOG.md](CHANGELOG.md), 이번 릴리스 안내는 [RELEASE_NOTES.md](RELEASE_NOTES.md)에 있습니다.
 
 ## 다운로드와 실행
 
-GitHub Releases에서 `DDay3-v3.5.6-win-x64.zip`을 내려받아 폴더에 압축을 푼 뒤 `DDay3.exe`를 실행합니다. 실행 파일과 `DDay3.exe.config`, 함께 제공되는 세 DLL 및 라이선스 파일을 같은 폴더에 두세요.
+GitHub Releases에서 `DDay3-v3.5.7-win-x64.zip`을 내려받아 폴더에 압축을 푼 뒤 `DDay3.exe`를 실행합니다. 실행 파일과 `DDay3.exe.config`, 함께 제공되는 세 DLL 및 라이선스 파일을 같은 폴더에 두세요.
 
 공식 배포 파일의 SHA-256은 Release의 `DDay3_SHA256.txt`와 비교할 수 있습니다.
 
 ```cmd
-certutil -hashfile DDay3-v3.5.6-win-x64.zip SHA256
+certutil -hashfile DDay3-v3.5.7-win-x64.zip SHA256
 ```
 
 ## 기본 사용법
@@ -79,7 +81,11 @@ URL의 기본 갱신 주기는 30분입니다. 수동·15분·30분·1/3/6시간
 
 ## 설정 보관과 업데이트
 
-설정과 일정은 `%LOCALAPPDATA%\MyDDayWidget\dday_config.ini`에 저장하고 최근 정상 설정 3세대를 백업합니다. 설정 불러오기·내보내기·최근 백업 복원을 제공하며 **기본 설정 초기화는 D-Day 목록을 유지합니다.** INI와 내보낸 설정 파일은 암호화하지 않습니다.
+설정과 일정은 `%LOCALAPPDATA%\MyDDayWidget\dday_config.ini`에 저장합니다. 일정·표시 설정이 바뀔 때 서로 다른 최근 정상 설정 3세대를 보관하며, 위치·크기만 바뀌면 이 백업을 교체하지 않습니다. `dday_config.daily-날짜.ini`에는 날짜별 최초 정상 사본을 최대 14개 보관합니다. **기본 설정 초기화는 D-Day 목록을 유지합니다.** INI와 내보낸 설정 파일은 암호화하지 않습니다.
+
+**설정 관리 → 백업 선택·복원…**에서 날짜·D-Day 개수를 확인해 선택한 뒤 저장하세요. 읽기 실패로 저장 보호가 걸린 경우에는 선택한 내용을 저장하기 전에 복구 확인을 표시합니다. 확인 후에도 기존 원본과 백업은 `Recovery` 폴더에 별도로 보존하며 이 사본은 자동 삭제하지 않습니다. 접근 오류가 계속되면 저장하지 않고 원본을 유지합니다.
+
+3.5.7에서 저장하는 INI 형식은 19이며 기존 정상 INI를 읽어 이어서 사용합니다. 새 파일에는 D-Day 개수와 무결성 확인값을 넣어 잘림·누락·변경을 감지합니다. 설정 파일을 직접 편집하면 검증에 실패할 수 있으므로 환경 설정과 불러오기·내보내기 기능을 사용하세요.
 
 업데이트할 때 앱을 종료하고 새 배포 ZIP의 파일을 교체하세요. 기존 일정과 설정은 유지됩니다. 중요 일정은 설정 내보내기로 먼저 보관할 수 있습니다. 캘린더 주소와 암호화된 사본은 INI 내보내기에 포함하지 않습니다.
 
@@ -91,13 +97,13 @@ Visual Studio/Build Tools의 **.NET 데스크톱 개발**, .NET SDK와 **.NET Fr
 msbuild DDay3.sln /restore /t:Rebuild /p:Configuration=Release /p:Platform=x64
 ```
 
-`build-release.bat`는 Release 빌드와 배포 검사를 실행하고 `artifacts\v3.5.6`에 실행 ZIP·EXE·SHA-256 파일을 만듭니다. Release 빌드가 끝난 상태에서 패키징만 다시 하려면 다음 명령을 사용합니다.
+`build-release.bat`는 Release 빌드와 배포 검사를 실행하고 `artifacts\v3.5.7`에 실행 ZIP·EXE·SHA-256 파일을 만듭니다. Release 빌드가 끝난 상태에서 패키징만 다시 하려면 다음 명령을 사용합니다.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\package-release.ps1
 ```
 
-GitHub Release 태그는 **`3.5.6`**입니다. 배포 자산 이름은 `DDay3-v3.5.6-win-x64.zip`과 `DDay3_SHA256.txt`를 사용합니다. 태그에는 `v`를 붙이지 않습니다.
+GitHub Release 태그는 **`3.5.7`**입니다. 배포 자산 이름은 `DDay3-v3.5.7-win-x64.zip`과 `DDay3_SHA256.txt`를 사용합니다. 태그에는 `v`를 붙이지 않습니다.
 
 실행 시 필요한 고정 버전 라이브러리는 Ical.Net 4.3.1, NodaTime 3.2.0, System.Runtime.CompilerServices.Unsafe 6.0.0입니다. 첫 빌드에서 NuGet으로 복원합니다. PowerShell 스크립트의 UTF-8 BOM과 배치 파일의 CRLF 인코딩을 유지하세요. 정식 Release에는 진단 로그 저장 모듈을 포함하지 않습니다.
 

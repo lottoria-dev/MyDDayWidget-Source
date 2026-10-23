@@ -62,10 +62,19 @@
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/><ColumnDefinition Width="28"/></Grid.ColumnDefinitions>
                                             <DatePicker SelectedDate="{Binding Date, UpdateSourceTrigger=PropertyChanged}" SelectedDateFormat="Short"
                                                         Height="28" Padding="0" Margin="0,0,3,0" VerticalContentAlignment="Center">
-                                                <DatePicker.Resources><Style TargetType="Button" BasedOn="{StaticResource GlassButtonStyle}">
-                                                    <Setter Property="MinHeight" Value="0"/><Setter Property="Padding" Value="0"/>
-                                                    <Setter Property="Margin" Value="0"/><Setter Property="Width" Value="22"/>
-                                                </Style></DatePicker.Resources>
+                                                <DatePicker.Resources>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource GlassButtonStyle}">
+                                                        <Setter Property="MinHeight" Value="0"/><Setter Property="Padding" Value="0"/>
+                                                        <Setter Property="Margin" Value="0"/>
+                                                        <!-- Only the drop-down icon has a fixed width. The popup's
+                                                             month/year header must size to its full content. -->
+                                                        <Style.Triggers>
+                                                            <Trigger Property="Name" Value="PART_Button">
+                                                                <Setter Property="Width" Value="22"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DatePicker.Resources>
                                             </DatePicker>
                                             <Button Grid.Column="1" Content="↑" Tag="{Binding}" Click="MoveDDayUp_OnClick" Height="26" MinHeight="0" Padding="0" Margin="1,0"
                                                     ToolTip="이 일정 위로" AutomationProperties.Name="이 일정 위로"/>
@@ -347,7 +356,7 @@
                         <MenuItem Header="설정 불러오기" Click="Import_OnClick"/>
                         <MenuItem Header="설정 내보내기" Click="Export_OnClick"/>
                         <Separator/>
-                        <MenuItem Header="최근 백업 복원" Click="RestoreBackup_OnClick"/>
+                        <MenuItem Header="백업 선택·복원…" Click="RestoreBackup_OnClick"/>
                         <MenuItem Header="기본 설정 초기화" ToolTip="D-Day 목록과 순서는 유지" Click="ResetDefaults_OnClick"/>
                     </ContextMenu></Button.ContextMenu>
                 </Button>

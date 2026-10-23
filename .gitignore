@@ -9,6 +9,8 @@ artifacts/
 *.tmp
 TestResults/
 HolidayCache/
+Recovery/
+dday_config.write.lock
 holiday-key.bin
 dday_config*.ini
 dday_config*.ini.*

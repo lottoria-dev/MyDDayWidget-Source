@@ -611,9 +611,9 @@ namespace DDay3.Views
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             ApplySettings(true);
-            SaveState(true);
             BuildContextMenu();
             AppServices.Log.Info("settings.applied", "items=" + settings.Items.Count + ", visibleLimit=" + settings.VisibleDDayCount + ", textMode=" + settings.TextColorMode + ", weekStart=" + settings.WeekStart);
+            if (trayIcon != null) trayIcon.Text = App.ProductName;
         }
 
         private void BringToPrimary()
@@ -668,18 +668,23 @@ namespace DDay3.Views
             if (initialLoadResult == null) return;
             string status = initialLoadResult.Status;
             if (status == "backup_recovered" || status == "backup_recovered_readonly" ||
-                status == "partial" || status == "defaults_after_error")
+                status == "partial" || status == "defaults_after_error" || status == "defaults_protected")
             {
                 Forms.ToolTipIcon icon = status == "partial" ? Forms.ToolTipIcon.Warning : Forms.ToolTipIcon.Info;
                 trayIcon.ShowBalloonTip(6000, "D-Day 3 설정 확인", initialLoadResult.Message, icon);
             }
             initialLoadResult = null;
+            if (configuration.IsWriteProtected && trayIcon != null) trayIcon.Text = "D-Day 3 · 설정 저장 보호 중";
         }
 
         private void SaveState(bool userInitiated)
         {
             SyncGeometry();
-            ConfigSaveResult result = configuration.Save(previewOriginal ?? settings, userInitiated);
+            // Menu commands and geometry changes are not authority to replace
+            // an unexpectedly changed schedule list. Only the settings editor
+            // and calendar registration perform explicit data saves.
+            ConfigSaveResult result = configuration.Save(previewOriginal ?? settings, false);
+            if (trayIcon != null && configuration.IsWriteProtected) trayIcon.Text = "D-Day 3 · 설정 저장 보호 중";
             if (!result.Success && !result.Skipped && userInitiated)
             {
                 MessageBox.Show(this, result.Message, "설정 저장 실패",
@@ -690,10 +695,15 @@ namespace DDay3.Views
         private void SyncGeometry()
         {
             if (previewOriginal != null) return;
-            settings.X = (int)Math.Round(Left);
-            settings.Y = (int)Math.Round(Top);
-            settings.Width = (int)Math.Round(ActualWidth > 0 ? ActualWidth : Width);
-            settings.Height = (int)Math.Round(ActualHeight > 0 ? ActualHeight : Height);
+            CaptureGeometry(settings);
+        }
+
+        internal void CaptureGeometry(AppSettings target)
+        {
+            target.X = (int)Math.Round(Left);
+            target.Y = (int)Math.Round(Top);
+            target.Width = (int)Math.Round(ActualWidth > 0 ? ActualWidth : Width);
+            target.Height = (int)Math.Round(ActualHeight > 0 ? ActualHeight : Height);
         }
 
         private string GeometrySummary()
